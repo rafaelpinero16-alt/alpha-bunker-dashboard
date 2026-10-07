@@ -1,955 +1,1266 @@
 <!DOCTYPE html>
-<html lang="es">
+<!-- THE BUNKER — COMMAND OS v9.0 — Interfaz tipo constructor (estilo PuzzleBot): barra lateral por secciones,
+     tarjetas y filas de ajustes. Misma API, mismos IDs y misma sesión estricta por initData / token. -->
+<html lang="es" data-theme="light">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="api-base" content="">
-<title>Alpha Bunker Dashboard</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-:root{
-  --steel:#141c24; --plate:#1b2530; --plate-2:#223040; --rivet:#2e3d4d;
-  --paper:#e4e8ec; --muted:#8d9bab; --signal:#f0a830; --signal-ink:#1d1405;
-  --go:#4fd18b; --stop:#ef6461;
-  --display:"Chakra Petch","Segoe UI",system-ui,sans-serif;
-  --body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;
-  --r-sm:6px; --r-md:10px; --r-lg:18px;
-}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--steel);color:var(--paper);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
-body{padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0);
-  background-image:linear-gradient(var(--rivet) 1px,transparent 1px),linear-gradient(90deg,var(--rivet) 1px,transparent 1px);
-  background-size:48px 48px;background-position:-1px -1px;background-attachment:fixed}
-body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(20,28,36,.55),var(--steel) 70%);pointer-events:none;z-index:0}
-.wrap{position:relative;z-index:1;max-width:720px;margin:0 auto;padding:0 18px 64px}
-button,input,select,textarea{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
-h1,h2,h3{font-family:var(--display);font-weight:600;margin:0;letter-spacing:.01em}
-h2{font-size:1.35rem}
-p{margin:0}
-.muted{color:var(--muted)}
-
-/* Barra superior */
-.top{display:flex;align-items:center;gap:12px;padding:14px 0;position:sticky;top:0;z-index:5;background:linear-gradient(var(--steel) 70%,transparent)}
-.brand{display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0}
-.brand svg{flex:none}
-.brand b{font-family:var(--display);font-size:1.05rem;font-weight:700;white-space:nowrap}
-.brand small{display:block;color:var(--muted);font-size:.75rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.status{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted);white-space:nowrap}
-.status i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
-.status[data-s="online"] i{background:var(--go);box-shadow:0 0 0 3px rgba(79,209,139,.18)}
-.status[data-s="offline"] i{background:var(--stop)}
-.status[data-s="preview"] i{background:var(--signal)}
-.lang{background:var(--plate);border:1px solid var(--rivet);border-radius:var(--r-sm);padding:6px 8px;font-size:.85rem}
-
-/* Hero: dial de la puerta blindada */
-.hero{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;padding:18px 0 26px}
-.dial{position:relative;width:168px;height:168px}
-.dial svg{width:100%;height:100%;display:block}
-.dial .tick{stroke:var(--rivet);stroke-width:3;stroke-linecap:round;transition:stroke .25s}
-.dial .tick.lit{stroke:var(--signal)}
-.dial .core{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.dial .core strong{font-family:var(--display);font-size:3rem;line-height:1;font-weight:700}
-.dial .core span{font-size:.8rem;color:var(--muted);margin-top:4px}
-.hero h1{font-size:1.75rem;line-height:1.15;margin-bottom:6px}
-.hero .line{color:var(--muted);margin-bottom:14px}
-.kv{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.9rem}
-.kv div{display:flex;gap:6px;align-items:baseline}
-.kv dt{color:var(--muted)}
-.kv dd{margin:0;font-family:var(--display);font-weight:600}
-@media (max-width:520px){.hero{grid-template-columns:1fr;justify-items:start}.dial{width:148px;height:148px}}
-
-.note{border:1px dashed var(--signal);border-radius:var(--r-md);padding:12px 14px;color:var(--paper);background:rgba(240,168,48,.06);margin-bottom:24px;font-size:.92rem}
-
-/* Secciones */
-section{margin-top:30px}
-.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
-.sec-head p{font-size:.88rem}
-
-/* Comunidades */
-.list{border:1px solid var(--rivet);border-radius:var(--r-lg);background:var(--plate);overflow:hidden}
-.row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-top:1px solid var(--rivet)}
-.row:first-child{border-top:0}
-.row .avatar{width:38px;height:38px;border-radius:50%;background:var(--plate-2);display:grid;place-items:center;font-family:var(--display);font-weight:700;flex:none;border:1px solid var(--rivet)}
-.row .meta{flex:1;min-width:0}
-.row .meta b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
-.row .meta small{color:var(--muted);font-size:.82rem}
-.flag{font-size:.74rem;padding:1px 7px;margin-right:6px;border-radius:99px;border:1px solid currentColor}
-.flag.ok{color:var(--go)} .flag.warn{color:var(--signal)}
-.empty{padding:22px 18px;display:flex;flex-direction:column;gap:12px;align-items:flex-start}
-
-/* Botones */
-.btn{appearance:none;border:1px solid var(--rivet);background:var(--plate-2);border-radius:var(--r-sm);padding:9px 14px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--paper)}
-.btn:hover{border-color:var(--muted)}
-.btn.primary{background:var(--signal);border-color:var(--signal);color:var(--signal-ink);font-weight:600}
-.btn.primary:hover{filter:brightness(1.06)}
-.btn.ghost{background:transparent}
-.btn.danger{color:var(--stop);background:transparent;border-color:transparent;padding:6px 8px}
-.btn[disabled]{opacity:.5;cursor:not-allowed}
-.btn.block{width:100%;justify-content:center;padding:12px}
-
-/* Escalera de planes */
-.ladder{position:relative;display:flex;flex-direction:column;gap:12px}
-.step{display:grid;grid-template-columns:54px 1fr;gap:14px;align-items:stretch}
-.step .lvl{display:flex;flex-direction:column;align-items:center}
-.step .lvl b{font-family:var(--display);font-size:1.5rem;width:54px;height:54px;border-radius:var(--r-md);display:grid;place-items:center;background:var(--plate);border:1px solid var(--rivet)}
-.step .lvl::after{content:"";flex:1;width:2px;background:var(--rivet);margin-top:6px}
-.step:last-child .lvl::after{display:none}
-.step .card{background:var(--plate);border:1px solid var(--rivet);border-radius:var(--r-md);padding:14px 16px}
-.step .card header{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:4px}
-.step .card h3{font-size:1.1rem}
-.step .price{font-family:var(--display);font-size:1.25rem;font-weight:700;white-space:nowrap}
-.step .card ul{margin:10px 0 12px;padding-left:18px;color:var(--paper);font-size:.9rem}
-.step .card li{margin:2px 0}
-.step.top .lvl b{background:var(--signal);color:var(--signal-ink);border-color:var(--signal)}
-.step.top .card{border-color:var(--signal)}
-
-/* Modales (hoja inferior) */
-.overlay{position:fixed;inset:0;background:rgba(8,12,16,.7);display:none;z-index:20;align-items:flex-end;justify-content:center}
-.overlay.open{display:flex}
-.sheet{width:100%;max-width:720px;max-height:92vh;overflow:auto;background:var(--plate);border:1px solid var(--rivet);border-bottom:0;border-radius:var(--r-lg) var(--r-lg) 0 0;padding:18px 18px calc(22px + env(safe-area-inset-bottom,0))}
-.overlay.open .sheet{animation:rise .22s ease-out}
-@keyframes rise{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
-.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
-.x{background:none;border:0;font-size:1.4rem;line-height:1;color:var(--muted);cursor:pointer;padding:4px 8px}
-.summary{display:flex;justify-content:space-between;align-items:baseline;padding:12px 14px;border-radius:var(--r-md);background:var(--plate-2);margin-bottom:16px}
-.summary b{font-family:var(--display);font-size:1.2rem}
-.gw{display:flex;flex-direction:column;gap:8px;margin:8px 0 16px}
-.gw label{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--rivet);border-radius:var(--r-md);cursor:pointer;background:var(--steel)}
-.gw label:has(input:checked){border-color:var(--signal);background:rgba(240,168,48,.07)}
-.gw label.off{opacity:.45;cursor:not-allowed}
-.gw input{accent-color:var(--signal)}
-.gw .gname{flex:1}
-.gw small{color:var(--muted)}
-.callout{padding:12px 14px;border-radius:var(--r-md);background:var(--plate-2);font-size:.92rem;margin-bottom:14px}
-
-/* Formularios */
-.tabs{display:flex;gap:4px;border-bottom:1px solid var(--rivet);margin-bottom:16px}
-.tabs button{background:none;border:0;padding:10px 12px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-weight:500}
-.tabs button[aria-selected="true"]{color:var(--paper);border-bottom-color:var(--signal)}
-.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
-.field>span{font-size:.88rem;font-weight:500}
-.field small{color:var(--muted);font-size:.8rem}
-.input,select.input,textarea.input{width:100%;background:var(--steel);border:1px solid var(--rivet);border-radius:var(--r-sm);padding:10px 12px}
-textarea.input{min-height:84px;resize:vertical}
-.switch{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;margin-bottom:8px}
-.switch input{appearance:none;width:44px;height:26px;border-radius:99px;background:var(--rivet);position:relative;cursor:pointer;flex:none;transition:background .15s}
-.switch input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--paper);transition:transform .15s}
-.switch input:checked{background:var(--signal)}
-.switch input:checked::after{transform:translateX(18px)}
-.rules{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
-.rule{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--rivet);border-radius:var(--r-md);background:var(--steel);font-size:.9rem}
-.rule .flow{flex:1;min-width:0}
-.rule .flow b{color:var(--signal);font-weight:600}
-.rule .flow p{color:var(--muted);font-size:.82rem;margin-top:2px;overflow-wrap:anywhere}
-.builder{border:1px solid var(--rivet);border-radius:var(--r-md);padding:14px;background:var(--plate-2)}
-.builder .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media (max-width:520px){.builder .pair{grid-template-columns:1fr}}
-.tpl{padding:14px;border:1px solid var(--rivet);border-radius:var(--r-md);margin-bottom:10px;background:var(--steel);display:flex;gap:12px;align-items:flex-start}
-.tpl .ico{font-size:1.5rem;line-height:1}
-.tpl div{flex:1}
-.tpl p{color:var(--muted);font-size:.88rem;margin:2px 0 10px}
-
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0));transform:translateX(-50%) translateY(20px);background:var(--paper);color:var(--steel);padding:10px 16px;border-radius:var(--r-md);font-weight:500;opacity:0;pointer-events:none;transition:.2s;z-index:40;max-width:calc(100% - 32px)}
-.toast.show{opacity:1;transform:translateX(-50%)}
-.toast.err{background:var(--stop);color:#fff}
-.hidden{display:none!important}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>The Bunker — Command OS</title>
+    <link rel="icon" type="image/jpeg" href="logo.jpg">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <div class="brand">
-      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">
-        <path d="M17 2 30 7v9c0 8-5.6 13.6-13 16C9.6 29.6 4 24 4 16V7z" fill="none" stroke="#f0a830" stroke-width="2"/>
-        <circle cx="17" cy="16" r="5.5" fill="none" stroke="#e4e8ec" stroke-width="2"/>
-        <path d="M17 10.5v-3M17 24.5v-3M11.5 16h-3M25.5 16h-3" stroke="#e4e8ec" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-      <div><b>Alpha Bunker</b><small data-i18n="tagline"></small></div>
-    </div>
-    <div class="status" id="status" data-s="connecting" role="status"><i></i><span id="statusText"></span></div>
-    <select class="lang" id="langSelect" aria-label="Idioma">
-      <option value="es">ES</option><option value="en">EN</option><option value="it">IT</option>
-      <option value="fr">FR</option><option value="de">DE</option><option value="pt">PT</option>
-    </select>
-  </header>
 
-  <div class="hero">
-    <div class="dial" aria-hidden="true">
-      <svg viewBox="0 0 168 168" id="dialSvg"></svg>
-      <div class="core"><strong id="dialNum">0</strong><span data-i18n="dial_label"></span></div>
-    </div>
-    <div>
-      <h1 id="hello"></h1>
-      <p class="line" id="heroLine"></p>
-      <dl class="kv">
-        <div><dt data-i18n="k_rules"></dt><dd id="kRules">0</dd></div>
-        <div><dt data-i18n="k_subs"></dt><dd id="kSubs">0</dd></div>
-        <div><dt data-i18n="k_bot"></dt><dd id="kBot">—</dd></div>
-      </dl>
-    </div>
-  </div>
+<!-- ============================================================== -->
+<!-- ACCESO (se omite automáticamente dentro de Telegram)            -->
+<!-- ============================================================== -->
+<div id="login-gate" class="auth-screen hidden">
+    <div class="auth-card">
+        <div class="auth-logo">B</div>
+        <h1 data-i18n="login_title">Acceso a The Bunker OS</h1>
+        <p class="auth-sub" data-i18n="login_subtitle">Autentica tu identidad operativa para desbloquear el panel de comando.</p>
 
-  <div class="note hidden" id="previewNote" data-i18n="preview_note"></div>
+        <!-- Widget oficial de Telegram (lo inyecta telegram.js) -->
+        <div id="telegram-login-widget-container"></div>
 
-  <section aria-labelledby="commTitle">
-    <div class="sec-head">
-      <h2 id="commTitle" data-i18n="sec_comm"></h2>
-      <button class="btn ghost" id="openTemplates" data-i18n="templates_btn"></button>
-    </div>
-    <div class="list" id="communityList"></div>
-  </section>
+        <div class="auth-divider"><span data-i18n="login_or">o</span></div>
 
-  <section aria-labelledby="plansTitle">
-    <div class="sec-head">
-      <h2 id="plansTitle" data-i18n="sec_plans"></h2>
-      <p class="muted" data-i18n="plans_sub"></p>
+        <button type="button" class="btn btn-telegram btn-block" onclick="app.loginViaBot()">
+            <i class="fa-brands fa-telegram"></i> <span data-i18n="login_via_bot">Iniciar sesión vía Bot</span>
+        </button>
+        <p id="login-status-msg" class="auth-status" data-i18n="login_hint">Se abrirá una ventana segura de Telegram para verificar tu identidad. No se solicitan contraseñas.</p>
     </div>
-    <div class="ladder" id="planLadder"></div>
-  </section>
 </div>
 
-<!-- Modal: plantillas -->
-<div class="overlay" id="tplModal" role="dialog" aria-modal="true" aria-labelledby="tplTitle">
-  <div class="sheet">
-    <div class="sheet-head"><h2 id="tplTitle" data-i18n="tpl_title"></h2><button class="x" data-close aria-label="Cerrar">×</button></div>
-    <p class="muted" style="margin-bottom:14px" data-i18n="tpl_sub"></p>
-    <label class="field"><span data-i18n="tpl_target"></span><select class="input" id="tplTarget"></select></label>
-    <div id="tplList"></div>
-  </div>
-</div>
+<!-- ============================================================== -->
+<!-- APLICACIÓN                                                      -->
+<!-- ============================================================== -->
+<div id="app-shell" class="layout hidden">
 
-<!-- Modal: checkout -->
-<div class="overlay" id="checkoutModal" role="dialog" aria-modal="true" aria-labelledby="coTitle">
-  <div class="sheet">
-    <div class="sheet-head"><h2 id="coTitle" data-i18n="co_title"></h2><button class="x" data-close aria-label="Cerrar">×</button></div>
-    <div class="summary"><span id="coPlan"></span><b id="coPrice"></b></div>
-    <h3 style="font-size:1rem" data-i18n="co_method"></h3>
-    <div class="gw" id="gatewayList"></div>
-    <div class="callout hidden" id="coInfo"></div>
-    <button class="btn primary block" id="coPay"></button>
-    <button class="btn block hidden" id="coCheck" style="margin-top:8px" data-i18n="co_check"></button>
-  </div>
-</div>
+    <div class="sidebar-backdrop" onclick="app.toggleDrawer(false)"></div>
 
-<!-- Modal: comunidad -->
-<div class="overlay" id="communityModal" role="dialog" aria-modal="true" aria-labelledby="cmTitle">
-  <div class="sheet">
-    <div class="sheet-head"><h2 id="cmTitle"></h2><button class="x" data-close aria-label="Cerrar">×</button></div>
-    <div class="tabs" role="tablist">
-      <button role="tab" aria-selected="true" data-tab="protect" data-i18n="cm_protect"></button>
-      <button role="tab" aria-selected="false" data-tab="rules" data-i18n="cm_rules"></button>
-    </div>
-    <div id="tab-protect">
-      <div class="switch"><span data-i18n="f_welcome_on"></span><input type="checkbox" id="sWelcomeOn"></div>
-      <label class="field"><span data-i18n="f_welcome"></span><textarea class="input" id="sWelcome" maxlength="2000"></textarea><small data-i18n="f_welcome_hint"></small></label>
-      <div class="switch"><span data-i18n="f_captcha"></span><input type="checkbox" id="sCaptcha"></div>
-      <label class="field"><span data-i18n="f_timeout"></span><input class="input" type="number" id="sTimeout" min="30" max="3600" step="10"></label>
-      <label class="field"><span data-i18n="f_black"></span><textarea class="input" id="sBlack"></textarea><small data-i18n="f_list_hint"></small></label>
-      <label class="field"><span data-i18n="f_black_act"></span>
-        <select class="input" id="sBlackAct">
-          <option value="delete" data-i18n="a_delete"></option>
-          <option value="delete_and_warn" data-i18n="a_warn"></option>
-          <option value="kick" data-i18n="a_kick"></option>
-        </select></label>
-      <label class="field"><span data-i18n="f_roles"></span><input class="input" id="sRoles"><small data-i18n="f_list_hint"></small></label>
-      <button class="btn primary block" id="saveSettings" data-i18n="save"></button>
-    </div>
-    <div id="tab-rules" class="hidden">
-      <div class="rules" id="ruleList"></div>
-      <div class="builder">
-        <div class="pair">
-          <label class="field"><span data-i18n="r_when"></span>
-            <select class="input" id="rTrigger">
-              <option value="command" data-i18n="t_command"></option>
-              <option value="keyword" data-i18n="t_keyword"></option>
-              <option value="join" data-i18n="t_join"></option>
-            </select></label>
-          <label class="field" id="rValueWrap"><span id="rValueLabel"></span><input class="input" id="rValue" maxlength="64"></label>
+    <!-- Barra lateral de secciones -->
+    <aside id="cyber-drawer" class="sidebar" aria-label="Navegación">
+        <div class="sidebar-head">
+            <img src="logo.jpg" class="brand-logo" alt="The Bunker"
+                 onerror="if(this.src.endsWith('logo.jpg')){this.src='logo.png';}else{this.onerror=null; this.classList.add('hidden'); document.getElementById('bunker-drawer-fallback-logo').classList.remove('hidden');}">
+            <div id="bunker-drawer-fallback-logo" class="brand-logo hidden">B</div>
+            <div>
+                <p class="brand-name">The Bunker</p>
+                <p class="brand-sub">Command OS</p>
+            </div>
+            <button type="button" class="btn btn-ghost btn-icon sidebar-close" onclick="app.toggleDrawer(false)" aria-label="Cerrar menú">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
         </div>
-        <label class="field"><span data-i18n="r_then"></span>
-          <select class="input" id="rAction">
-            <option value="send_message" data-i18n="x_send"></option>
-            <option value="add_role" data-i18n="x_role"></option>
-            <option value="kick" data-i18n="x_kick"></option>
-            <option value="payment_wall" data-i18n="x_wall"></option>
-          </select></label>
-        <label class="field" id="pTextWrap"><span id="pTextLabel"></span><textarea class="input" id="pText" maxlength="2000"></textarea></label>
-        <label class="field hidden" id="pRoleWrap"><span data-i18n="p_role"></span><input class="input" id="pRole" maxlength="64"></label>
-        <label class="field hidden" id="pPlanWrap"><span data-i18n="p_plan"></span><select class="input" id="pPlan"></select></label>
-        <button class="btn primary block" id="addRule" data-i18n="add_rule"></button>
-      </div>
+
+        <div class="operator-card">
+            <div class="avatar sm">
+                <span id="drawer-avatar-initials">•</span>
+                <img id="drawer-avatar-img" class="hidden" alt="">
+            </div>
+            <div class="op-meta">
+                <p id="drawer-user-name" class="op-name truncate">—</p>
+                <p id="drawer-user-handle" class="op-handle truncate">—</p>
+            </div>
+            <button type="button" class="btn btn-ghost btn-icon" onclick="app.switchTab('profile')" aria-label="Perfil">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <nav class="nav">
+            <p class="nav-group-label" data-i18n="nav_group_main">Principal</p>
+            <button type="button" class="nav-item is-active" data-tab="dashboard" onclick="app.switchTab('dashboard')">
+                <i class="fa-solid fa-gauge-high"></i><span data-i18n="nav_dash">Telemetría & Stats</span>
+            </button>
+            <button type="button" class="nav-item" data-tab="analytics" onclick="app.switchTab('analytics')">
+                <i class="fa-solid fa-chart-line"></i><span data-i18n="nav_analytics">Analítica en Vivo</span>
+            </button>
+
+            <p class="nav-group-label" data-i18n="nav_group_community">Comunidades</p>
+            <button type="button" class="nav-item" data-tab="channels" onclick="app.switchTab('channels')">
+                <i class="fa-solid fa-bullhorn"></i><span data-i18n="nav_channels">Estudio de Canales</span>
+            </button>
+            <button type="button" class="nav-item" data-tab="groups" onclick="app.switchTab('groups')">
+                <i class="fa-solid fa-users"></i><span data-i18n="nav_groups">Matriz de Grupos</span>
+            </button>
+            <button type="button" class="nav-item" data-tab="bot-settings" onclick="app.switchTab('bot-settings')">
+                <i class="fa-solid fa-sliders"></i><span data-i18n="groups_title">Ajustes del Bot</span>
+            </button>
+
+            <p class="nav-group-label" data-i18n="nav_group_money">Monetización</p>
+            <button type="button" class="nav-item" data-tab="watchdog" onclick="app.switchTab('watchdog')">
+                <i class="fa-solid fa-user-clock"></i><span data-i18n="nav_watchdog">Auditor Suscripciones</span>
+            </button>
+            <button type="button" class="nav-item" data-tab="plans" onclick="app.switchTab('plans')">
+                <i class="fa-solid fa-star"></i><span data-i18n="nav_plans">Membresías & Stars</span>
+            </button>
+            <button type="button" class="nav-item" data-tab="affiliates" onclick="app.switchTab('affiliates')">
+                <i class="fa-solid fa-share-nodes"></i><span data-i18n="nav_aff">Red de Afiliados</span>
+            </button>
+
+            <p class="nav-group-label" data-i18n="nav_group_account">Cuenta</p>
+            <button type="button" class="nav-item" data-tab="profile" onclick="app.switchTab('profile')">
+                <i class="fa-solid fa-circle-user"></i><span data-i18n="menu_my_profile">Mi Perfil</span>
+            </button>
+            <button type="button" class="nav-item" onclick="app.openHelpModal(); app.toggleDrawer(false);">
+                <i class="fa-solid fa-life-ring"></i><span data-i18n="menu_help">Ayuda & Soporte</span>
+            </button>
+        </nav>
+
+        <div class="sidebar-foot">
+            <div class="segmented" role="group" aria-label="Tema">
+                <button type="button" id="theme-btn-light" onclick="app.setTheme('light')">
+                    <i class="fa-solid fa-sun"></i> <span data-i18n="theme_light">Claro</span>
+                </button>
+                <button type="button" id="theme-btn-dark" onclick="app.setTheme('dark')">
+                    <i class="fa-solid fa-moon"></i> <span data-i18n="theme_dark">Oscuro</span>
+                </button>
+            </div>
+            <button type="button" class="btn btn-ghost btn-block" onclick="app.logout()">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> <span data-i18n="btn_logout">Cerrar Sesión</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="main">
+        <!-- Barra superior -->
+        <header class="topbar">
+            <button type="button" class="btn btn-ghost btn-icon menu-btn" onclick="app.toggleDrawer(true)" aria-label="Abrir menú">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <img src="logo.jpg" class="brand-logo menu-btn" alt="" style="width:30px;height:30px;border-radius:8px"
+                 onerror="if(this.src.endsWith('logo.jpg')){this.src='logo.png';}else{this.onerror=null; this.classList.add('hidden'); document.getElementById('bunker-header-fallback-logo').classList.remove('hidden');}">
+            <div id="bunker-header-fallback-logo" class="brand-logo menu-btn hidden" style="width:30px;height:30px;border-radius:8px">B</div>
+            <div class="topbar-title">
+                <h1 id="page-title" class="truncate" data-i18n="nav_dash">Telemetría & Stats</h1>
+                <p id="page-subtitle" class="truncate" data-i18n="page_sub_dashboard">Resumen de todo tu ecosistema.</p>
+            </div>
+            <div class="topbar-actions">
+                <button type="button" id="ws-status-pill" class="ws-pill" data-status="idle" onclick="app.switchTab('analytics')" title="Radar WebSocket">
+                    <span id="ws-status-label">Radar inactivo</span>
+                </button>
+                <div class="topbar-user">
+                    <div class="avatar sm">
+                        <span id="avatar-initials">•</span>
+                        <img id="avatar-img" class="hidden" alt="">
+                    </div>
+                    <div>
+                        <p id="user-name" class="op-name truncate">—</p>
+                        <p class="op-handle"><span id="user-handle">—</span> · <span id="user-id-display">ID: —</span></p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Contexto activo -->
+        <div class="context-bar">
+            <label for="target-context-select"><i class="fa-solid fa-layer-group"></i><span data-i18n="active_context">Entorno Activo:</span></label>
+            <select id="target-context-select" class="select" onchange="app.switchContext(this.value)">
+                <option value="global" data-i18n="ctx_global">🌐 Todo el ecosistema</option>
+                <option value="channels" data-i18n="ctx_channels">📢 Canales vinculados</option>
+                <option value="groups" data-i18n="ctx_groups">🛡️ Comunidades protegidas</option>
+            </select>
+        </div>
+
+        <main id="tab-container" class="content">
+
+            <!-- ====================================================== -->
+            <!-- TELEMETRÍA                                             -->
+            <!-- ====================================================== -->
+            <section id="view-dashboard" class="tab-view stack">
+                <div class="page-head">
+                    <div>
+                        <h2 data-i18n="dash_telemetry">Telemetría del Búnker</h2>
+                        <p data-i18n="page_sub_dashboard">Resumen de todo tu ecosistema.</p>
+                    </div>
+                    <div class="actions">
+                        <button type="button" class="btn btn-secondary btn-sm sync-btn-trigger" onclick="app.syncChats()">
+                            <i class="fa-solid fa-rotate"></i> <span data-i18n="sync">Sincronizar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="kpi-grid cols-4">
+                    <div class="kpi">
+                        <p class="kpi-label"><i class="fa-solid fa-crown text-warning"></i><span data-i18n="stat_subs">Suscriptores VIP</span></p>
+                        <p id="stat-subs-count" class="kpi-value">0</p>
+                        <p class="kpi-sub" data-i18n="live_sync">Sincronización en vivo</p>
+                    </div>
+                    <div class="kpi">
+                        <p class="kpi-label"><i class="fa-solid fa-star text-warning"></i><span data-i18n="stat_revenue">Ingresos Stars</span></p>
+                        <p id="stat-revenue-count" class="kpi-value">0 ⭐</p>
+                        <p class="kpi-sub" data-i18n="stat_source">Datos reales del bot</p>
+                    </div>
+                    <div class="kpi">
+                        <p class="kpi-label"><i class="fa-solid fa-user-check text-success"></i><span data-i18n="stat_verified">Verificados</span></p>
+                        <p id="stat-verified" class="kpi-value">0</p>
+                    </div>
+                    <div class="kpi">
+                        <p class="kpi-label"><i class="fa-solid fa-user-slash text-danger"></i><span data-i18n="stat_expelled">Expulsados</span></p>
+                        <p id="stat-expelled" class="kpi-value">0</p>
+                        <p class="kpi-sub"><span data-i18n="stat_purges">Purgas</span>: <strong id="stat-purges">0</strong></p>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-head">
+                            <div>
+                                <p class="card-title"><i class="fa-solid fa-shield-halved"></i><span data-i18n="perimeter_title">Perímetro Operativo</span></p>
+                                <p class="card-sub" data-i18n="perimeter_sub">Supervisión 24/7</p>
+                            </div>
+                            <span class="badge badge-success" data-i18n="online_tag">En Línea 🟢</span>
+                        </div>
+                        <div class="card-body tight setting-list">
+                            <div class="setting-row"><span class="sr-title" data-i18n="captcha_label">Aduana Captcha:</span><strong id="telemetry-captcha" class="sr-value text-muted">—</strong></div>
+                            <div class="setting-row"><span class="sr-title" data-i18n="autolower_label">Radar AutoLower:</span><strong id="telemetry-autolower" class="sr-value text-muted">—</strong></div>
+                            <div class="setting-row"><span class="sr-title" data-i18n="shield_label">Escudo Antinota:</span><strong id="telemetry-shield" class="sr-value text-muted">—</strong></div>
+                            <div class="setting-row"><span class="sr-title" data-i18n="broadcast_label">Difusión Recurrente:</span><strong id="telemetry-broadcast" class="sr-value text-muted">—</strong></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-head flat">
+                            <p class="card-title"><i class="fa-solid fa-bolt"></i><span data-i18n="quick_title">Accesos rápidos</span></p>
+                        </div>
+                        <div class="card-body">
+                            <div class="quick-grid" style="grid-template-columns:1fr">
+                                <button type="button" class="quick-item" onclick="app.switchTab('bot-settings')">
+                                    <span class="tile-icon sm tone-blue"><i class="fa-solid fa-sliders"></i></span>
+                                    <span><span class="qi-title" data-i18n="groups_title">Ajustes del Bot</span><br><span class="qi-desc" data-i18n="quick_settings_desc">Captcha, filtros, propinas y acústica.</span></span>
+                                    <i class="fa-solid fa-chevron-right chev"></i>
+                                </button>
+                                <button type="button" class="quick-item" onclick="app.switchTab('channels')">
+                                    <span class="tile-icon sm tone-violet"><i class="fa-solid fa-gem"></i></span>
+                                    <span><span class="qi-title" data-i18n="nav_channels">Estudio de Canales</span><br><span class="qi-desc" data-i18n="quick_channels_desc">Planes VIP en Stars y difusión.</span></span>
+                                    <i class="fa-solid fa-chevron-right chev"></i>
+                                </button>
+                                <button type="button" class="quick-item" onclick="app.switchTab('analytics')">
+                                    <span class="tile-icon sm tone-green"><i class="fa-solid fa-chart-line"></i></span>
+                                    <span><span class="qi-title" data-i18n="nav_analytics">Analítica en Vivo</span><br><span class="qi-desc" data-i18n="quick_analytics_desc">Actividad, retención y mapa de calor.</span></span>
+                                    <i class="fa-solid fa-chevron-right chev"></i>
+                                </button>
+                                <button type="button" class="quick-item" onclick="app.switchTab('watchdog')">
+                                    <span class="tile-icon sm tone-amber"><i class="fa-solid fa-user-clock"></i></span>
+                                    <span><span class="qi-title" data-i18n="nav_watchdog">Auditor Suscripciones</span><br><span class="qi-desc" data-i18n="quick_watchdog_desc">Días restantes de cada suscriptor.</span></span>
+                                    <i class="fa-solid fa-chevron-right chev"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="footer-note" data-i18n="footer_copyright">The Bunker Command OS © 2026 — Cloud Media Management</p>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- ANALÍTICA EN VIVO                                      -->
+            <!-- ====================================================== -->
+            <section id="view-analytics" class="tab-view stack hidden">
+                <div class="page-head">
+                    <div>
+                        <span class="badge badge-primary" data-i18n="an_badge">RADAR EN TIEMPO REAL</span>
+                        <h2 style="margin-top:6px" data-i18n="an_title">Analítica de Comunidad</h2>
+                        <p id="an-updated"></p>
+                    </div>
+                    <div class="actions">
+                        <button type="button" id="an-toast-toggle" class="btn btn-secondary btn-icon" onclick="app.toggleLiveToasts()" aria-pressed="true" title="Alertas">
+                            <i id="an-toast-toggle-icon" class="fa-solid fa-bell"></i>
+                        </button>
+                        <button type="button" id="an-refresh-btn" class="btn btn-secondary btn-sm" onclick="app.refreshAnalytics()">
+                            <i class="fa-solid fa-rotate"></i> <span data-i18n="an_refresh">Actualizar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="field">
+                            <label class="label" for="analytics-chat-select"><span data-i18n="select_your_community">Selecciona tu comunidad...</span></label>
+                            <select id="analytics-chat-select" class="select" onchange="app.openAnalytics(this.value)">
+                                <option value="" data-i18n="select_your_community">Selecciona tu comunidad...</option>
+                            </select>
+                        </div>
+                        <p class="hint" style="margin-top:8px">
+                            <i class="fa-solid fa-tower-broadcast"></i>
+                            <span id="an-ws-label" aria-live="polite">Radar inactivo</span>
+                            <span id="an-ws-chat" class="text-soft"></span>
+                        </p>
+                    </div>
+                </div>
+
+                <div id="an-empty" class="empty-state">
+                    <span class="es-icon">📊</span>
+                    <span data-i18n="an_empty">Selecciona una comunidad para ver su analítica en vivo.</span>
+                </div>
+                <div id="an-loading" class="state-box is-loading hidden">
+                    <i class="fa-solid fa-spinner fa-spin"></i> <span data-i18n="an_loading">Compilando métricas...</span>
+                </div>
+                <div id="an-error" class="state-box is-error hidden">
+                    <p>⚠️ <span id="an-error-msg"></span></p>
+                    <button type="button" id="an-error-retry" class="btn btn-danger btn-sm" onclick="app.refreshAnalytics()">
+                        <i class="fa-solid fa-rotate"></i> <span data-i18n="btn_retry">Reintentar conexión</span>
+                    </button>
+                </div>
+
+                <div id="an-content" class="stack hidden">
+                    <div class="kpi-grid cols-3">
+                        <div class="kpi"><p class="kpi-label" data-i18n="an_kpi_dau">Activos hoy (DAU)</p><p id="an-kpi-dau" class="kpi-value">—</p></div>
+                        <div class="kpi"><p class="kpi-label" data-i18n="an_kpi_wau">7 días (WAU)</p><p id="an-kpi-wau" class="kpi-value">—</p></div>
+                        <div class="kpi"><p class="kpi-label" data-i18n="an_kpi_mau">30 días (MAU)</p><p id="an-kpi-mau" class="kpi-value">—</p></div>
+                    </div>
+
+                    <div class="kpi-grid cols-4">
+                        <div class="kpi">
+                            <p class="kpi-label" data-i18n="an_kpi_messages">Mensajes hoy</p>
+                            <p id="an-kpi-messages-today" class="kpi-value">—</p>
+                            <p class="kpi-sub"><span id="an-kpi-messages-delta">—</span> <span data-i18n="an_vs_yesterday">vs. ayer a esta hora</span></p>
+                        </div>
+                        <div class="kpi">
+                            <p class="kpi-label" data-i18n="an_kpi_stickiness">Stickiness DAU/MAU</p>
+                            <p id="an-kpi-stickiness" class="kpi-value">—</p>
+                        </div>
+                        <div class="kpi">
+                            <p class="kpi-label" data-i18n="an_kpi_members">Miembros</p>
+                            <p id="an-kpi-members" class="kpi-value">—</p>
+                            <p id="an-kpi-members-sub" class="kpi-sub"></p>
+                        </div>
+                        <div class="kpi">
+                            <p class="kpi-label" data-i18n="an_kpi_joins">Altas 7d / 30d</p>
+                            <p id="an-kpi-joins" class="kpi-value">—</p>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="card">
+                            <div class="card-head flat"><p class="card-title"><i class="fa-solid fa-arrows-rotate"></i><span data-i18n="an_kpi_retention">Retención de cohortes</span></p></div>
+                            <div class="card-body">
+                                <div class="kpi-mini" style="grid-template-columns:1fr 1fr;margin-top:0">
+                                    <div><span data-i18n="an_cohort_7d">Cohorte 7 días</span><p id="an-kpi-retention-7d">—</p><span id="an-kpi-retention-7d-sub"></span></div>
+                                    <div><span data-i18n="an_cohort_30d">Cohorte 30 días</span><p id="an-kpi-retention-30d">—</p><span id="an-kpi-retention-30d-sub"></span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-head flat"><p class="card-title"><i class="fa-solid fa-star"></i><span data-i18n="an_kpi_stars">Recaudación Stars</span></p></div>
+                            <div class="card-body">
+                                <p id="an-kpi-stars-total" class="kpi-value" style="margin-top:0">0 ⭐</p>
+                                <div class="kpi-mini">
+                                    <div><span data-i18n="an_stars_today">hoy</span><p id="an-kpi-stars-today">0</p></div>
+                                    <div><span data-i18n="an_stars_30d">30 días</span><p id="an-kpi-stars-30d">0</p></div>
+                                    <div><span data-i18n="an_payments">pagos</span><p id="an-kpi-payments">0</p></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="card">
+                            <div class="card-head flat">
+                                <p class="card-title" data-i18n="an_spark_messages">Mensajes (30 días)</p>
+                                <strong id="an-spark-messages-total">—</strong>
+                            </div>
+                            <div class="card-body"><div id="an-spark-messages" class="spark"></div></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-head flat">
+                                <p class="card-title" data-i18n="an_spark_active">Usuarios activos (30 días)</p>
+                                <span class="hint"><span data-i18n="an_peak_label">Pico</span> <strong id="an-spark-active-peak">—</strong></span>
+                            </div>
+                            <div class="card-body"><div id="an-spark-active" class="spark"></div></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-head flat">
+                                <p class="card-title" data-i18n="an_spark_growth">Altas de miembros (30 días)</p>
+                                <strong id="an-spark-growth-total">—</strong>
+                            </div>
+                            <div class="card-body"><div id="an-spark-growth" class="spark"></div></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-head flat"><p class="card-title"><i class="fa-solid fa-microphone"></i><span data-i18n="an_voice_title">Sala de Audio</span></p></div>
+                            <div class="card-body">
+                                <p style="display:flex;align-items:center;gap:8px">
+                                    <span id="an-voice-dot" class="voice-dot"></span>
+                                    <strong id="an-voice-status">Sin llamada activa</strong>
+                                </p>
+                                <p class="hint" style="margin-top:6px"><span id="an-voice-count">0 en sala</span> · <span id="an-voice-mics">0 micrófonos abiertos</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-head">
+                            <p class="card-title"><i class="fa-solid fa-fire"></i><span data-i18n="an_heatmap_title">Mapa de Calor 24/7</span></p>
+                            <span id="an-heatmap-peak" class="hint"></span>
+                        </div>
+                        <div class="card-body scroll-x"><div id="an-heatmap" style="min-width:420px"></div></div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="card">
+                            <div class="card-head"><p class="card-title"><i class="fa-solid fa-chart-pie"></i><span data-i18n="an_breakdown_title">Desglose de Mensajes (30 días)</span></p></div>
+                            <div class="card-body">
+                                <div id="an-breakdown-bar" class="breakdown-bar"></div>
+                                <div id="an-breakdown-legend" class="legend"></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-head"><p class="card-title"><i class="fa-solid fa-trophy"></i><span data-i18n="an_leaderboard_title">Cuadro de Honor — Top 10</span></p></div>
+                            <div class="card-body tight"><div id="an-leaderboard" class="rows"></div></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-head"><p class="card-title"><i class="fa-solid fa-satellite-dish"></i><span data-i18n="an_feed_title">Actividad en Vivo</span></p></div>
+                        <div class="card-body tight">
+                            <p id="an-feed-empty" class="hint" style="padding:10px 0" data-i18n="an_feed_empty">Esperando eventos en vivo...</p>
+                            <div id="an-live-feed"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- ESTUDIO DE CANALES                                     -->
+            <!-- ====================================================== -->
+            <section id="view-channels" class="tab-view stack hidden">
+                <div class="page-head">
+                    <div>
+                        <h2 data-i18n="nav_channels">Estudio de Canales</h2>
+                        <p data-i18n="page_sub_channels">Planes de pago en Stars y difusión automática de tus canales.</p>
+                    </div>
+                    <div class="actions">
+                        <button type="button" class="btn btn-secondary btn-sm sync-btn-trigger" onclick="app.syncChats()">
+                            <i class="fa-solid fa-rotate"></i> <span data-i18n="sync">Sincronizar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="nav-group-label" style="padding-left:2px" data-i18n="linked_channels">Canales Conectados</p>
+                    <div id="channels-list" class="list"></div>
+                </div>
+
+                <div class="card is-accent">
+                    <div class="card-body">
+                        <div class="field">
+                            <label class="label" for="channel-owner-select">
+                                <span data-i18n="channel_owner_label">Canal bajo tu ID de creador:</span>
+                                <span id="channel-id-display" class="chip mono">ID: —</span>
+                            </label>
+                            <select id="channel-owner-select" class="select">
+                                <option value="" data-i18n="select_your_channel">Selecciona tu canal...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generador de planes (crea registros reales en channel_plans) -->
+                <div id="plan-form-panel" class="card">
+                    <div class="card-head">
+                        <div>
+                            <p class="card-title"><i class="fa-solid fa-gem"></i><span data-i18n="pf_title">Generador de Planes VIP</span></p>
+                            <p class="card-sub" data-i18n="pf_desc">Crea un plan real en el catálogo del canal.</p>
+                        </div>
+                    </div>
+                    <form id="plan-form" class="card-body" novalidate onsubmit="event.preventDefault(); app.createPlanFromForm();">
+                        <div class="field">
+                            <label class="label" for="plan-form-name" data-i18n="pf_name_label">Nombre del Plan:</label>
+                            <input type="text" id="plan-form-name" class="input" maxlength="64" autocomplete="off" placeholder="VIP Mensual" data-i18n-placeholder="pf_name_placeholder">
+                            <p id="plan-form-name-error" class="field-error hidden"></p>
+                        </div>
+                        <div class="field-row">
+                            <div class="field">
+                                <label class="label" for="plan-form-price" data-i18n="pf_price_label">Tarifa en Stars (XTR):</label>
+                                <input type="number" id="plan-form-price" class="input" inputmode="numeric" min="1" max="10000" step="1" value="150">
+                                <p id="plan-form-price-error" class="field-error hidden"></p>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="plan-form-days" data-i18n="pf_days_label">Duración (Días):</label>
+                                <input type="number" id="plan-form-days" class="input" inputmode="numeric" min="1" max="365" step="1" value="30">
+                                <p id="plan-form-days-error" class="field-error hidden"></p>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label" for="plan-form-link" data-i18n="pf_link_label">Destino VIP (opcional):</label>
+                            <input type="text" id="plan-form-link" class="input" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="256" placeholder="https://t.me/+... o @alias" data-i18n-placeholder="pf_link_placeholder">
+                            <p id="plan-form-link-error" class="field-error hidden"></p>
+                        </div>
+                        <div class="field">
+                            <label class="label" for="plan-form-promo"><span data-i18n="pf_promo_label">Texto Promocional:</span><span id="plan-form-promo-counter" class="counter">0/1000</span></label>
+                            <textarea id="plan-form-promo" class="textarea" rows="3" maxlength="1000" placeholder="Describe el beneficio." data-i18n-placeholder="pf_promo_placeholder"></textarea>
+                            <p id="plan-form-promo-error" class="field-error hidden"></p>
+                        </div>
+                        <div class="btn-row" style="margin-top:14px">
+                            <button type="submit" id="pf-create-btn" class="btn btn-primary">
+                                <span id="pf-create-icon">💾</span> <span id="pf-create-label" data-i18n="pf_btn_create">Crear y Activar</span>
+                            </button>
+                            <button type="button" id="pf-preview-btn" class="btn btn-secondary" onclick="app.previewPlanForm()">
+                                <span>👁️</span> <span data-i18n="pf_btn_preview">Previsualizar</span>
+                            </button>
+                            <button type="button" id="pf-broadcast-btn" class="btn btn-secondary" onclick="app.broadcastPlanForm()">
+                                <span>📢</span> <span data-i18n="pf_btn_broadcast">Difundir</span>
+                            </button>
+                            <button type="button" id="pf-clear-btn" class="btn btn-ghost" onclick="app.clearPlanForm()">
+                                <span>🗑️</span> <span data-i18n="pf_btn_clear">Limpiar</span>
+                            </button>
+                        </div>
+                        <div id="plan-form-result" class="result-box hidden" style="margin-top:12px"></div>
+                    </form>
+                </div>
+
+                <!-- Planes activos del canal -->
+                <div id="channel-plans-panel" class="card">
+                    <div class="card-head">
+                        <div>
+                            <p class="card-title"><i class="fa-solid fa-list-check"></i><span data-i18n="plans_title">Planes Activos del Canal</span></p>
+                            <p id="channel-plans-count" class="card-sub"></p>
+                        </div>
+                        <button type="button" id="channel-plans-refresh" class="btn btn-secondary btn-sm" onclick="app.refreshChannelPlans()">
+                            <i class="fa-solid fa-rotate"></i> <span data-i18n="plans_refresh">Actualizar</span>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="channel-plans-list" class="list" aria-live="polite">
+                            <div class="empty-state" data-i18n="plans_select_channel">Selecciona un canal para ver sus planes de membresía.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Difusión automática de promoción -->
+                <div class="card">
+                    <div class="card-head">
+                        <div>
+                            <p class="card-title"><i class="fa-solid fa-bullhorn"></i><span data-i18n="bc_section_title">Difusión Automática de Promoción</span></p>
+                            <p class="card-sub"><span id="studio-broadcast-status">Sin programar ⚪</span></p>
+                        </div>
+                        <button type="button" id="studio-save-btn" class="btn btn-primary btn-sm" onclick="app.saveChannelStudio()">
+                            <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="btn_open_studio">Guardar Ajustes</span>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <p id="studio-save-status" role="status" aria-live="polite" data-status="idle" style="min-height:16px;margin-bottom:6px"></p>
+                        <div class="field-row">
+                            <div class="field">
+                                <label class="label" for="studio-broadcast-target" data-i18n="bc_target_label">Chat Destino (@alias o ID):</label>
+                                <input type="text" id="studio-broadcast-target" class="input" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="33" placeholder="@MiComunidad" data-i18n-placeholder="bc_target_placeholder">
+                                <p id="studio-broadcast-target-error" class="field-error hidden"></p>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="studio-broadcast-interval" data-i18n="bc_interval_label">Intervalo de Repetición:</label>
+                                <select id="studio-broadcast-interval" class="select">
+                                    <option value="6" data-i18n="bc_interval_6">Cada 6 Horas</option>
+                                    <option value="12" selected data-i18n="bc_interval_12">Cada 12 Horas</option>
+                                    <option value="24" data-i18n="bc_interval_24">Cada 24 Horas (Diario)</option>
+                                    <option value="48" data-i18n="bc_interval_48">Cada 48 Horas</option>
+                                </select>
+                                <p id="studio-broadcast-interval-error" class="field-error hidden"></p>
+                            </div>
+                        </div>
+                        <p class="hint" style="margin-top:8px" data-i18n="bc_target_hint">Vacío = sin difusión automática; "Difundir Ahora" publicará en el propio canal.</p>
+                        <div class="field" style="margin-top:12px">
+                            <label class="label" for="studio-promo-text"><span data-i18n="bc_promo_label">Texto del Mensaje Promocional:</span><span id="studio-promo-counter" class="counter">0/1000</span></label>
+                            <textarea id="studio-promo-text" class="textarea" rows="3" maxlength="1000" placeholder="¡Accede a nuestro contenido VIP aquí!" data-i18n-placeholder="bc_promo_placeholder"></textarea>
+                            <p id="studio-promo-text-error" class="field-error hidden"></p>
+                        </div>
+                    </div>
+                    <div class="card-foot">
+                        <button type="button" id="bc-clear-btn" class="btn btn-ghost" onclick="app.clearBroadcastForm()">
+                            <span>🗑️</span> <span data-i18n="bc_btn_clear">Limpiar</span>
+                        </button>
+                        <button type="button" id="bc-preview-btn" class="btn btn-secondary" onclick="app.previewCustomBroadcast()">
+                            <span>👁️</span> <span data-i18n="bc_btn_preview">Vista Previa</span>
+                        </button>
+                        <button type="button" id="bc-send-btn" class="btn btn-primary" onclick="app.broadcastCustomBroadcast()">
+                            <span id="bc-send-icon">📢</span> <span data-i18n="bc_btn_send">Difundir Ahora</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- MATRIZ DE GRUPOS                                       -->
+            <!-- ====================================================== -->
+            <section id="view-groups" class="tab-view stack hidden">
+                <div class="page-head">
+                    <div>
+                        <h2 data-i18n="nav_groups">Matriz de Grupos</h2>
+                        <p data-i18n="page_sub_groups">Comunidades conectadas, tarifa y registro de moderación.</p>
+                    </div>
+                    <div class="actions">
+                        <button type="button" class="btn btn-secondary btn-sm sync-btn-trigger" onclick="app.syncChats()">
+                            <i class="fa-solid fa-rotate"></i> <span data-i18n="sync">Sincronizar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="nav-group-label" style="padding-left:2px" data-i18n="linked_groups">Comunidades Conectadas</p>
+                    <div id="groups-list" class="list"></div>
+                </div>
+
+                <div id="community-panel" class="stack">
+                    <div class="grid-2">
+                        <div class="card">
+                            <div class="card-body" style="display:flex;align-items:center;gap:12px">
+                                <span class="tile-icon tone-amber"><i class="fa-solid fa-receipt"></i></span>
+                                <div style="flex:1;min-width:0">
+                                    <p class="card-sub" data-i18n="tariff_plan_label">Plan Tarifario</p>
+                                    <p id="chat-plan-status" class="sr-value text-danger" style="text-align:left" data-i18n="tariff_empty">Sin tarifa</p>
+                                </div>
+                                <button type="button" class="btn btn-soft btn-sm" onclick="app.switchTab('plans')" data-i18n="license_renew">Renovar</button>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-body" style="display:flex;align-items:center;gap:12px">
+                                <span class="tile-icon tone-violet"><i class="fa-solid fa-file-lines"></i></span>
+                                <div style="flex:1;min-width:0">
+                                    <p class="card-sub" data-i18n="log_channel_label">Canal de registro:</p>
+                                    <p id="chat-log-channel" class="sr-value text-muted truncate" style="text-align:left" data-i18n="status_disabled">Desactivado</p>
+                                </div>
+                                <button type="button" class="btn btn-soft btn-sm" onclick="app.openLogChannelModal()" data-i18n="configure">Configurar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="card">
+                            <div class="card-head">
+                                <p class="card-title"><i class="fa-solid fa-ranking-star"></i><span data-i18n="top_users_title">Top 10 Usuarios Activos</span></p>
+                                <span class="badge" data-i18n="days_30">30 días</span>
+                            </div>
+                            <div class="card-body tight">
+                                <div id="chat-top-users-list" class="rows">
+                                    <p class="hint" style="padding:10px 0" data-i18n="top_users_empty">Sin registros de actividad reciente</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-head">
+                                <p class="card-title"><i class="fa-solid fa-user-shield"></i><span data-i18n="admin_stats_title">Rendimiento de Admins</span></p>
+                                <span class="badge badge-success" data-i18n="status_enabled">Activo</span>
+                            </div>
+                            <div class="card-body tight">
+                                <div id="chat-admin-stats-list" class="rows">
+                                    <p class="hint" style="padding:10px 0" data-i18n="admin_stats_empty">Sin estadísticas de administradores</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- AJUSTES DEL BOT · CONSOLA DE PROGRAMACIÓN 1:1          -->
+            <!-- ====================================================== -->
+            <section id="view-bot-settings" class="tab-view stack hidden">
+                <div class="page-head">
+                    <div>
+                        <span class="badge badge-primary" data-i18n="perimeter_badge">CONTROL MAESTRO</span>
+                        <h2 style="margin-top:6px" data-i18n="groups_title">Ajustes de Comunidad</h2>
+                        <p data-i18n="page_sub_bot_settings">Programa cómo se comporta el bot en cada comunidad.</p>
+                    </div>
+                    <div class="actions">
+                        <button type="button" class="btn btn-secondary btn-sm sync-btn-trigger" onclick="app.syncChats()">
+                            <i class="fa-solid fa-rotate"></i> <span data-i18n="sync">Sincronizar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card is-accent">
+                    <div class="card-body">
+                        <div class="field">
+                            <label class="label" for="group-owner-select" data-i18n="group_owner_label">Comunidad administrada:</label>
+                            <select id="group-owner-select" class="select" onchange="app.configureChat(this.value)">
+                                <option value="" data-i18n="select_your_community">Selecciona tu comunidad...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="cfg-console" class="card">
+                    <div class="card-head">
+                        <div>
+                            <p class="card-title"><i class="fa-solid fa-microchip"></i><span data-i18n="cfg_title">Programación del Bot</span></p>
+                            <p class="card-sub" data-i18n="cfg_desc">Cada cambio rige el comportamiento del bot en la comunidad al instante.</p>
+                        </div>
+                        <span id="cfg-console-state" class="cfg-status" data-i18n="cfg_pick">Selecciona una comunidad para programar el bot.</span>
+                    </div>
+                    <div class="card-body">
+
+                        <!-- Aduana & Bienvenida -->
+                        <details id="cfg-section-aduana" class="module" data-section="aduana" open>
+                            <summary>
+                                <span class="tile-icon sm tone-blue"><i class="fa-solid fa-door-open"></i></span>
+                                <span class="m-text">
+                                    <span class="m-title" data-i18n="cfg_sec_aduana">Aduana & Bienvenida</span><br>
+                                    <span class="m-desc" data-i18n="cfg_sec_aduana_desc">Reto de verificación para nuevos miembros y mensaje de bienvenida.</span>
+                                </span>
+                                <span id="cfg-status-aduana" class="cfg-status"></span>
+                                <i class="fa-solid fa-chevron-down m-chev"></i>
+                            </summary>
+                            <div class="module-body">
+                                <div class="setting-list">
+                                    <div class="setting-row">
+                                        <div class="sr-text">
+                                            <p class="sr-title" data-i18n="cfg_captcha_enabled">Aduana Captcha Pro</p>
+                                            <p class="sr-desc" data-i18n="captcha_desc">Desafío privado antes de ingresar</p>
+                                        </div>
+                                        <button type="button" id="cfg-captcha_enabled" class="switch cfg-switch" role="switch" aria-checked="false" data-field="captcha_enabled" onclick="app.toggleConfigSwitch('captcha_enabled')">
+                                            <span class="cfg-switch-knob"></span><span class="sr-only">Aduana Captcha Pro</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="field-row">
+                                    <div class="field">
+                                        <label class="label" for="cfg-captcha_mode" data-i18n="cfg_captcha_mode">Modo de reto:</label>
+                                        <select id="cfg-captcha_mode" class="select cfg-input" data-section="aduana">
+                                            <option value="button" data-i18n="cfg_captcha_mode_button">Botón simple («Soy humano»)</option>
+                                            <option value="math" data-i18n="cfg_captcha_mode_math">Desafío aritmético</option>
+                                        </select>
+                                        <p id="cfg-captcha_mode-error" class="field-error hidden"></p>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label" for="cfg-captcha_timeout" data-i18n="cfg_captcha_timeout">Tiempo límite:</label>
+                                        <select id="cfg-captcha_timeout" class="select cfg-input" data-section="aduana">
+                                            <option value="30">30 s</option>
+                                            <option value="60" selected>60 s</option>
+                                            <option value="120">120 s</option>
+                                            <option value="300">300 s</option>
+                                        </select>
+                                        <p id="cfg-captcha_timeout-error" class="field-error hidden"></p>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label" for="cfg-custom_welcome"><span data-i18n="cfg_custom_welcome">Mensaje de bienvenida:</span><span id="cfg-custom_welcome-counter" class="counter">0/1000</span></label>
+                                    <textarea id="cfg-custom_welcome" class="textarea cfg-input" data-section="aduana" rows="3" maxlength="1000" placeholder="¡Bienvenido {name} a {title}!" data-i18n-placeholder="cfg_welcome_placeholder"></textarea>
+                                    <div class="var-chips">
+                                        <span data-i18n="cfg_welcome_vars">Variables:</span>
+                                        <button type="button" class="btn btn-soft btn-xs" onclick="app.insertWelcomeVariable('name')">{name}</button>
+                                        <button type="button" class="btn btn-soft btn-xs" onclick="app.insertWelcomeVariable('username')">{username}</button>
+                                        <button type="button" class="btn btn-soft btn-xs" onclick="app.insertWelcomeVariable('title')">{title}</button>
+                                    </div>
+                                    <p id="cfg-custom_welcome-error" class="field-error hidden"></p>
+                                </div>
+                                <button type="button" id="cfg-save-aduana" class="btn btn-primary btn-block module-save" onclick="app.saveConfigSection('aduana')">
+                                    <i class="fa-solid fa-floppy-disk"></i> <span id="cfg-save-label-aduana" data-i18n="cfg_save">Guardar</span>
+                                </button>
+                            </div>
+                        </details>
+
+                        <!-- Acústica & Videochat -->
+                        <details id="cfg-section-acoustic" class="module" data-section="acoustic">
+                            <summary>
+                                <span class="tile-icon sm tone-green"><i class="fa-solid fa-microphone-lines"></i></span>
+                                <span class="m-text">
+                                    <span class="m-title" data-i18n="cfg_sec_acoustic">Acústica & Videochat</span><br>
+                                    <span class="m-desc" data-i18n="cfg_sec_acoustic_desc">Atenuación automática, escudo de pantalla y tarifas del videochat.</span>
+                                </span>
+                                <span id="cfg-status-acoustic" class="cfg-status"></span>
+                                <i class="fa-solid fa-chevron-down m-chev"></i>
+                            </summary>
+                            <div class="module-body">
+                                <div class="setting-list">
+                                    <div class="setting-row">
+                                        <div class="sr-text">
+                                            <p class="sr-title" data-i18n="cfg_autolower_enabled">AutoLower de micrófonos</p>
+                                            <p class="sr-desc" data-i18n="autolower_desc">Atenuación acústica de fondo</p>
+                                        </div>
+                                        <button type="button" id="cfg-autolower_enabled" class="switch cfg-switch" role="switch" aria-checked="false" data-field="autolower_enabled" onclick="app.toggleConfigSwitch('autolower_enabled')">
+                                            <span class="cfg-switch-knob"></span><span class="sr-only">AutoLower</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label" for="cfg-autolower_pct"><span data-i18n="cfg_autolower_pct">Atenuación:</span><strong id="cfg-autolower_pct-value">2%</strong></label>
+                                    <input type="range" id="cfg-autolower_pct" class="cfg-input" data-section="acoustic" min="1" max="10" step="1" value="2">
+                                    <p id="cfg-autolower_pct-error" class="field-error hidden"></p>
+                                </div>
+                                <div class="setting-list" style="margin-top:6px">
+                                    <div class="setting-row">
+                                        <div class="sr-text">
+                                            <p class="sr-title" data-i18n="cfg_shield_enabled">Escudo Antinota</p>
+                                            <p class="sr-desc" data-i18n="shield_desc">Corte de pantalla compartida</p>
+                                        </div>
+                                        <button type="button" id="cfg-shield_enabled" class="switch cfg-switch" role="switch" aria-checked="false" data-field="shield_enabled" onclick="app.toggleConfigSwitch('shield_enabled')">
+                                            <span class="cfg-switch-knob"></span><span class="sr-only">Escudo Antinota</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="field-row">
+                                    <div class="field">
+                                        <label class="label" for="cfg-micvip_price" data-i18n="cfg_micvip_price">Pase VIP 24h (MicVIP) ⭐:</label>
+                                        <input type="number" id="cfg-micvip_price" class="input cfg-input" data-section="acoustic" inputmode="numeric" min="1" max="10000" step="1" value="50">
+                                        <p id="cfg-micvip_price-error" class="field-error hidden"></p>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label" for="cfg-speaker_price" data-i18n="cfg_speaker_price">Turno prioritario (Cola AMA) ⭐:</label>
+                                        <input type="number" id="cfg-speaker_price" class="input cfg-input" data-section="acoustic" inputmode="numeric" min="1" max="10000" step="1" value="25">
+                                        <p id="cfg-speaker_price-error" class="field-error hidden"></p>
+                                    </div>
+                                </div>
+                                <button type="button" id="cfg-save-acoustic" class="btn btn-primary btn-block module-save" onclick="app.saveConfigSection('acoustic')">
+                                    <i class="fa-solid fa-floppy-disk"></i> <span id="cfg-save-label-acoustic" data-i18n="cfg_save">Guardar</span>
+                                </button>
+                            </div>
+                        </details>
+
+                        <!-- Propinas -->
+                        <details id="cfg-section-tips" class="module" data-section="tips">
+                            <summary>
+                                <span class="tile-icon sm tone-amber"><i class="fa-solid fa-hand-holding-heart"></i></span>
+                                <span class="m-text">
+                                    <span class="m-title" data-i18n="cfg_sec_tips">Propinas & Monetización</span><br>
+                                    <span class="m-desc" data-i18n="cfg_sec_tips_desc">Aportes voluntarios en Telegram Stars para la comunidad.</span>
+                                </span>
+                                <span id="cfg-status-tips" class="cfg-status"></span>
+                                <i class="fa-solid fa-chevron-down m-chev"></i>
+                            </summary>
+                            <div class="module-body">
+                                <div class="setting-list">
+                                    <div class="setting-row">
+                                        <div class="sr-text"><p class="sr-title" data-i18n="cfg_tips_enabled">Propinas en Stars</p></div>
+                                        <button type="button" id="cfg-tips_enabled" class="switch cfg-switch" role="switch" aria-checked="false" data-field="tips_enabled" onclick="app.toggleConfigSwitch('tips_enabled')">
+                                            <span class="cfg-switch-knob"></span><span class="sr-only">Propinas</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label" for="cfg-tips_presets" data-i18n="cfg_tips_presets">Montos rápidos (separados por coma):</label>
+                                    <input type="text" id="cfg-tips_presets" class="input cfg-input" data-section="tips" inputmode="numeric" autocomplete="off" maxlength="60" placeholder="15, 50, 100, 250, 500" data-i18n-placeholder="cfg_tips_presets_placeholder">
+                                    <p id="cfg-tips_presets-error" class="field-error hidden"></p>
+                                </div>
+                                <div class="setting-list" style="margin-top:6px">
+                                    <div class="setting-row">
+                                        <div class="sr-text"><p class="sr-title" data-i18n="cfg_custom_tips_allowed">Permitir monto libre</p></div>
+                                        <button type="button" id="cfg-custom_tips_allowed" class="switch cfg-switch" role="switch" aria-checked="false" data-field="custom_tips_allowed" onclick="app.toggleConfigSwitch('custom_tips_allowed')">
+                                            <span class="cfg-switch-knob"></span><span class="sr-only">Monto libre</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="button" id="cfg-save-tips" class="btn btn-primary btn-block module-save" onclick="app.saveConfigSection('tips')">
+                                    <i class="fa-solid fa-floppy-disk"></i> <span id="cfg-save-label-tips" data-i18n="cfg_save">Guardar</span>
+                                </button>
+                            </div>
+                        </details>
+
+                        <!-- Perímetro & Filtros -->
+                        <details id="cfg-section-perimeter" class="module" data-section="perimeter">
+                            <summary>
+                                <span class="tile-icon sm tone-red"><i class="fa-solid fa-shield-halved"></i></span>
+                                <span class="m-text">
+                                    <span class="m-title" data-i18n="cfg_sec_perimeter">Perímetro & Filtros</span><br>
+                                    <span class="m-desc" data-i18n="cfg_sec_perimeter_desc">Enlaces, inundación de mensajes y limpieza de avisos de servicio.</span>
+                                </span>
+                                <span id="cfg-status-perimeter" class="cfg-status"></span>
+                                <i class="fa-solid fa-chevron-down m-chev"></i>
+                            </summary>
+                            <div class="module-body">
+                                <div class="setting-list">
+                                    <div class="setting-row">
+                                        <div class="sr-text">
+                                            <p class="sr-title" data-i18n="cfg_linklock_enabled">Cerradura de enlaces (LinkLock)</p>
+                                            <p class="sr-desc" data-i18n="linklock_desc">Purga inmediata de URLs no permitidas</p>
+                                        </div>
+                                        <button type="button" id="cfg-linklock_enabled" class="switch cfg-switch" role="switch" aria-checked="false" data-field="linklock_enabled" onclick="app.toggleConfigSwitch('linklock_enabled')">
+                                            <span class="cfg-switch-knob"></span><span class="sr-only">LinkLock</span>
+                                        </button>
+                                    </div>
+                                    <div class="setting-row">
+                                        <div class="sr-text"><p class="sr-title" data-i18n="cfg_antiflood_enabled">Anti-Flood</p></div>
+                                        <button type="button" id="cfg-antiflood_enabled" class="switch cfg-switch" role="switch" aria-checked="false" data-field="antiflood_enabled" onclick="app.toggleConfigSwitch('antiflood_enabled')">
+                                            <span class="cfg-switch-knob"></span><span class="sr-only">Anti-Flood</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="field-row">
+                                    <div class="field">
+                                        <label class="label" for="cfg-antiflood_rate" data-i18n="cfg_antiflood_rate">Mensajes permitidos:</label>
+                                        <input type="number" id="cfg-antiflood_rate" class="input cfg-input" data-section="perimeter" inputmode="numeric" min="3" max="50" step="1" value="10">
+                                        <p id="cfg-antiflood_rate-error" class="field-error hidden"></p>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label" for="cfg-antiflood_window" data-i18n="cfg_antiflood_window">por ventana de (s):</label>
+                                        <input type="number" id="cfg-antiflood_window" class="input cfg-input" data-section="perimeter" inputmode="numeric" min="5" max="120" step="1" value="15">
+                                        <p id="cfg-antiflood_window-error" class="field-error hidden"></p>
+                                    </div>
+                                </div>
+                                <div class="setting-list" style="margin-top:6px">
+                                    <div class="setting-row">
+                                        <div class="sr-text"><p class="sr-title" data-i18n="cfg_service_cleaner_enabled">Purga de mensajes de servicio (uniones/salidas)</p></div>
+                                        <button type="button" id="cfg-service_cleaner_enabled" class="switch cfg-switch" role="switch" aria-checked="false" data-field="service_cleaner_enabled" onclick="app.toggleConfigSwitch('service_cleaner_enabled')">
+                                            <span class="cfg-switch-knob"></span><span class="sr-only">Purga de servicio</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="button" id="cfg-save-perimeter" class="btn btn-primary btn-block module-save" onclick="app.saveConfigSection('perimeter')">
+                                    <i class="fa-solid fa-floppy-disk"></i> <span id="cfg-save-label-perimeter" data-i18n="cfg_save">Guardar</span>
+                                </button>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+
+                <!-- Herramientas avanzadas -->
+                <div class="card">
+                    <div class="card-head">
+                        <div>
+                            <p class="card-title"><i class="fa-solid fa-screwdriver-wrench"></i><span data-i18n="gc_ultra_title">Herramientas Ultra & Clones MTProto</span></p>
+                            <p class="card-sub" data-i18n="ultra_tools_desc">Acciones avanzadas sobre la comunidad seleccionada.</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="field">
+                            <label class="label" for="clone-bot-token" data-i18n="gc_clone_label">Token de bot clon (BotFather):</label>
+                            <div class="input-group">
+                                <input type="password" id="clone-bot-token" class="input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ">
+                                <button type="button" id="btn-deploy-clone" class="btn btn-primary" onclick="app.deployClone()"><span data-i18n="gc_btn_deploy">Desplegar</span></button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label" for="sentinel-session-string"><span data-i18n="gc_sentinel_label">Centinela acústico MTProto:</span><span class="chip">String Session</span></label>
+                            <div class="input-group">
+                                <input type="password" id="sentinel-session-string" class="input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="String Session (Pyrogram)">
+                                <button type="button" id="btn-connect-sentinel" class="btn btn-secondary" onclick="app.connectSentinel()">
+                                    <i class="fa-solid fa-plug"></i> <span data-i18n="gc_btn_sentinel">Conectar</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-foot" style="justify-content:stretch">
+                        <button type="button" id="btn-ghost-purge" class="btn btn-danger btn-block" onclick="app.runGhostPurge()">
+                            <i class="fa-solid fa-ghost"></i> <span data-i18n="gc_btn_purge">Ejecutar Ghost Purge (cuentas fantasma)</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- AUDITOR DE SUSCRIPCIONES                               -->
+            <!-- ====================================================== -->
+            <section id="view-watchdog" class="tab-view stack hidden">
+                <div class="page-head">
+                    <div>
+                        <span class="badge badge-primary" data-i18n="watchdog_badge">MONITOR DE MIEMBROS</span>
+                        <h2 style="margin-top:6px" data-i18n="watchdog_title">Aviso de Suscripciones</h2>
+                        <p data-i18n="watchdog_desc">Supervisa el tiempo restante de cada miembro suscrito antes del Auto-Kick.</p>
+                    </div>
+                    <span class="badge badge-success"><i class="fa-solid fa-circle" style="font-size:7px"></i><span data-i18n="live_badge">En Vivo</span></span>
+                </div>
+                <div id="watchdog-list" class="list"></div>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- MEMBRESÍAS DE LA PLATAFORMA (solo Telegram Stars)      -->
+            <!-- ====================================================== -->
+            <section id="view-plans" class="tab-view stack hidden">
+                <div class="page-head">
+                    <div>
+                        <h2 data-i18n="plans_title">Membresías de Comunidad</h2>
+                        <p data-i18n="plans_stars_only">Pago 100% in-app con Telegram Stars (XTR). Activación inmediata.</p>
+                    </div>
+                </div>
+                <div class="price-grid">
+                    <div class="price-card">
+                        <span class="badge" data-i18n="basic_badge">ACCESO GRATUITO</span>
+                        <h3 data-i18n="basic_title">Plan BÁSICO</h3>
+                        <p class="price">0 <small>XTR</small></p>
+                        <p data-i18n="basic_desc">Comandos de moderación limitados. Sin automatización de radar ni soporte prioritario.</p>
+                        <div class="spacer"></div>
+                        <button type="button" class="btn btn-secondary btn-block" disabled>
+                            <i class="fa-solid fa-check"></i> <span data-i18n="btn_free_active">Activo por defecto</span>
+                        </button>
+                    </div>
+                    <div class="price-card is-featured">
+                        <span class="badge badge-primary" data-i18n="pro_badge">PLAN MENSUAL</span>
+                        <h3 data-i18n="pro_title">Plan PRO</h3>
+                        <p class="price">⭐ <span data-price="pro">300</span> <small>XTR</small></p>
+                        <p data-i18n="pro_desc">Automatización total, moderación de voz y comandos ilimitados para tu comunidad.</p>
+                        <div class="spacer"></div>
+                        <button type="button" class="btn btn-primary btn-block" onclick="app.pagarPlan('pro')">
+                            <i class="fa-solid fa-star"></i> <span data-i18n="btn_pay_stars">Pagar con Stars</span>
+                        </button>
+                    </div>
+                    <div class="price-card">
+                        <span class="badge badge-violet" data-i18n="ultra_badge">ACCESO ILIMITADO</span>
+                        <h3 data-i18n="ultra_title">ULTRA PRO</h3>
+                        <p class="price">⭐ <span data-price="ultra">600</span> <small>XTR</small></p>
+                        <p data-i18n="ultra_desc">Radar avanzado anti-fantasmas, prioridad máxima en servidores y soporte directo.</p>
+                        <div class="spacer"></div>
+                        <button type="button" class="btn btn-secondary btn-block" onclick="app.pagarPlan('ultra')">
+                            <i class="fa-solid fa-star"></i> <span data-i18n="btn_pay_stars">Pagar con Stars</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- AFILIADOS                                              -->
+            <!-- ====================================================== -->
+            <section id="view-affiliates" class="tab-view stack hidden">
+                <div class="page-head">
+                    <div>
+                        <h2 data-i18n="aff_title">Red de Afiliados & Comisiones</h2>
+                        <p data-i18n="page_sub_affiliates">Comparte tu enlace y gana comisiones en Stars.</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body stack">
+                        <p class="text-soft" data-i18n="aff_desc">Comparte tu enlace único de promotor. Cada vez que una comunidad adquiera un plan PRO o ULTRA a través de tu recomendación, recibes comisiones en Telegram Stars.</p>
+                        <div class="copy-field">
+                            <span id="affiliate-link-text">—</span>
+                            <button type="button" class="btn btn-primary btn-sm" onclick="app.copyAffiliateLink()">
+                                <i class="fa-solid fa-copy"></i> <span data-i18n="btn_copy">Copiar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====================================================== -->
+            <!-- PERFIL                                                 -->
+            <!-- ====================================================== -->
+            <section id="view-profile" class="tab-view stack hidden">
+                <div class="card">
+                    <div class="profile-hero">
+                        <div class="avatar lg">
+                            <span id="profile-initials">•</span>
+                            <img id="profile-img" class="hidden" alt="">
+                        </div>
+                        <div>
+                            <h2 id="profile-name">—</h2>
+                            <p id="profile-handle" class="text-muted">—</p>
+                            <p id="profile-id" class="hint mono">ID: —</p>
+                        </div>
+                        <span class="badge badge-success"><i class="fa-solid fa-circle-check"></i><span data-i18n="profile_verified">Cuenta verificada por Telegram</span></span>
+                    </div>
+                </div>
+                <div class="kpi-grid">
+                    <div class="kpi">
+                        <p class="kpi-label" data-i18n="profile_balance_stars">Balance Stars:</p>
+                        <p id="profile-balance-stars" class="kpi-value">0 ⭐</p>
+                    </div>
+                    <div class="kpi">
+                        <p class="kpi-label" data-i18n="stat_subs">Suscriptores VIP</p>
+                        <p class="kpi-value" data-mirror="stat-subs-count">0</p>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-danger btn-block" onclick="app.logout()">
+                    <i class="fa-solid fa-power-off"></i> <span data-i18n="btn_terminate_sessions">Cerrar todas las sesiones activas</span>
+                </button>
+            </section>
+
+        </main>
     </div>
-  </div>
+
+    <!-- ============================================================== -->
+    <!-- MODALES                                                         -->
+    <!-- ============================================================== -->
+
+    <!-- Ayuda y soporte -->
+    <div id="modal-help" class="modal hidden" role="dialog" aria-modal="true" onclick="if (event.target === this) app.closeHelpModal()">
+        <div class="modal-dialog">
+            <div class="modal-head">
+                <div><h2 data-i18n="menu_help">Ayuda & Soporte</h2></div>
+                <button type="button" class="btn btn-ghost btn-icon" onclick="app.closeHelpModal()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body stack">
+                <div class="modal-links">
+                    <a class="list-item" href="https://t.me/TheBunkerSupportChat" target="_blank" rel="noopener">
+                        <span class="tile-icon sm tone-blue"><i class="fa-solid fa-headset"></i></span>
+                        <span class="li-main li-title" data-i18n="help_support_chat">Chat de soporte técnico</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-muted"></i>
+                    </a>
+                    <button type="button" class="list-item" onclick="app.openInstructionModal()">
+                        <span class="tile-icon sm tone-green"><i class="fa-solid fa-book"></i></span>
+                        <span class="li-main li-title" data-i18n="help_instruction">Instrucciones y manuales</span>
+                        <i class="fa-solid fa-chevron-right text-muted"></i>
+                    </button>
+                    <button type="button" class="list-item" onclick="app.openRegexModal()">
+                        <span class="tile-icon sm tone-violet"><i class="fa-solid fa-code"></i></span>
+                        <span class="li-main li-title" data-i18n="help_test_regex">Probar expresión regular</span>
+                        <i class="fa-solid fa-chevron-right text-muted"></i>
+                    </button>
+                </div>
+
+                <div>
+                    <div class="tabs">
+                        <button type="button" id="help-tab-error" class="tab is-active" onclick="app.switchHelpTab('error')" data-i18n="tab_report_error">Reportar un error</button>
+                        <button type="button" id="help-tab-review" class="tab" onclick="app.switchHelpTab('review')" data-i18n="tab_leave_review">Dejar una reseña</button>
+                    </div>
+                    <div id="help-content-error" class="stack">
+                        <div id="star-rating-container" class="stars hidden">
+                            <i class="fa-solid fa-star is-on" onclick="app.setRating(1)"></i>
+                            <i class="fa-solid fa-star is-on" onclick="app.setRating(2)"></i>
+                            <i class="fa-solid fa-star is-on" onclick="app.setRating(3)"></i>
+                            <i class="fa-solid fa-star is-on" onclick="app.setRating(4)"></i>
+                            <i class="fa-solid fa-star is-on" onclick="app.setRating(5)"></i>
+                        </div>
+                        <div class="dropzone" onclick="document.getElementById('help-file-input').click()">
+                            <i class="fa-solid fa-paperclip"></i>
+                            <p id="help-file-label" data-i18n="click_attach">Pulsa para adjuntar un archivo</p>
+                            <input type="file" id="help-file-input" class="hidden" onchange="app.handleFileAttach(this)">
+                        </div>
+                        <div class="field">
+                            <textarea id="help-textarea" class="textarea" maxlength="4096" placeholder="Describe el error o tu reseña..." data-i18n-placeholder="report_placeholder"></textarea>
+                            <p id="help-char-counter" class="counter" style="text-align:right">0 / 4096</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn btn-secondary" onclick="app.closeHelpModal()" data-i18n="btn_cancel">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="app.sendHelpReport()" data-i18n="btn_send">Enviar mensaje</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instrucciones -->
+    <div id="modal-instruction" class="modal hidden" role="dialog" aria-modal="true" onclick="if (event.target === this) app.closeInstructionModal()">
+        <div class="modal-dialog">
+            <div class="modal-head">
+                <h2 data-i18n="instruction_title">Instrucciones & Manual Oficial</h2>
+                <button type="button" class="btn btn-ghost btn-icon" onclick="app.closeInstructionModal()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body stack">
+                <p class="text-soft" data-i18n="instruction_body">The Bunker Command OS gestiona comunidades en Telegram con automatización de nivel industrial.</p>
+                <div class="card">
+                    <div class="card-body">
+                        <p class="card-title" data-i18n="instruction_steps_title">🚀 Pasos iniciales:</p>
+                        <div class="rows" style="margin-top:6px">
+                            <p class="row-item" data-i18n="instruction_step1">1. Añade el bot como administrador en tu canal o grupo.</p>
+                            <p class="row-item" data-i18n="instruction_step2">2. Sincroniza el ID desde el Estudio de Canales.</p>
+                            <p class="row-item" data-i18n="instruction_step3">3. Configura tarifas en XTR.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn btn-primary" onclick="app.closeInstructionModal()" data-i18n="btn_close">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prueba de expresiones regulares -->
+    <div id="modal-regex" class="modal hidden" role="dialog" aria-modal="true" onclick="if (event.target === this) app.closeRegexModal()">
+        <div class="modal-dialog">
+            <div class="modal-head">
+                <h2 data-i18n="regex_title">Comprobar expresión regular</h2>
+                <button type="button" class="btn btn-ghost btn-icon" onclick="app.closeRegexModal()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="field">
+                    <label class="label" for="regex-pattern" data-i18n="regex_pattern_label">Expresión regular:</label>
+                    <input type="text" id="regex-pattern" class="input mono" placeholder="^/match.*">
+                </div>
+                <div class="field">
+                    <label class="label" for="regex-string" data-i18n="regex_string_label">Texto a evaluar:</label>
+                    <input type="text" id="regex-string" class="input" placeholder="Texto...">
+                </div>
+                <label class="var-chips" style="margin-top:12px" for="regex-lowercase">
+                    <input type="checkbox" id="regex-lowercase">
+                    <span data-i18n="regex_lowercase_label">Convertir a minúsculas</span>
+                </label>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('regex-pattern').value=''; document.getElementById('regex-string').value='';" data-i18n="btn_reset">Restablecer</button>
+                <button type="button" class="btn btn-primary" onclick="app.testRegex()" data-i18n="btn_test">Probar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vista previa de un plan -->
+    <div id="modal-plan-preview" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="plan-preview-title" onclick="if (event.target === this) app.closePlanPreview()">
+        <div class="modal-dialog">
+            <div class="modal-head">
+                <div>
+                    <h2 id="plan-preview-title" data-i18n="plans_preview_title">Vista previa del anuncio</h2>
+                    <p data-i18n="plans_preview_hint">Así verán tu plan en Telegram.</p>
+                </div>
+                <button type="button" class="btn btn-ghost btn-icon" onclick="app.closePlanPreview()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body"><div id="plan-preview-body"></div></div>
+            <div class="modal-foot">
+                <button type="button" class="btn btn-primary" onclick="app.closePlanPreview()" data-i18n="btn_close">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Canal de registro -->
+    <div id="modal-log-channel" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="log-channel-title" onclick="if (event.target === this) app.closeLogChannelModal()">
+        <form id="log-channel-form" class="modal-dialog" novalidate onsubmit="event.preventDefault(); app.saveLogChannel();">
+            <div class="modal-head">
+                <div>
+                    <span class="badge badge-violet" data-i18n="logm_badge">AUDITORÍA</span>
+                    <h2 id="log-channel-title" style="margin-top:6px" data-i18n="logm_title">Canal de Registro</h2>
+                    <p data-i18n="logm_desc">Los eventos de moderación de esta comunidad se publicarán en este canal.</p>
+                </div>
+                <button type="button" class="btn btn-ghost btn-icon" onclick="app.closeLogChannelModal()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-list">
+                    <div class="setting-row"><span class="sr-desc" data-i18n="logm_community">Comunidad:</span><strong id="log-channel-community" class="sr-value truncate">—</strong></div>
+                    <div class="setting-row"><span class="sr-desc" data-i18n="logm_current">Actual:</span><strong id="log-channel-current" class="sr-value truncate">—</strong></div>
+                </div>
+                <div class="field" style="margin-top:10px">
+                    <label class="label" for="log-channel-input" data-i18n="logm_label">ID numérico o @alias del canal</label>
+                    <input type="text" id="log-channel-input" class="input" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="33" enterkeyhint="done" placeholder="-1001234567890 o @MiCanalDeLogs" data-i18n-placeholder="logm_placeholder">
+                    <p id="log-channel-input-error" class="field-error hidden" role="alert"></p>
+                    <p class="hint" data-i18n="logm_help">El bot debe ser administrador del canal con permiso para publicar. Deja el campo vacío y guarda para desactivar el registro.</p>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn btn-secondary" onclick="app.closeLogChannelModal()" data-i18n="logm_cancel">Cancelar</button>
+                <button type="submit" id="log-channel-save-btn" class="btn btn-primary"><span id="log-channel-save-label" data-i18n="logm_save">Guardar</span></button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Vista previa de la difusión -->
+    <div id="modal-broadcast-preview" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="broadcast-preview-title" onclick="if (event.target === this) app.closeBroadcastPreview()">
+        <div class="modal-dialog">
+            <div class="modal-head">
+                <div>
+                    <h2 id="broadcast-preview-title" data-i18n="bc_preview_title">Vista previa de la difusión</h2>
+                    <p data-i18n="bc_preview_hint">Así se publicará tu promoción en Telegram.</p>
+                </div>
+                <button type="button" class="btn btn-ghost btn-icon" onclick="app.closeBroadcastPreview()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body"><div id="broadcast-preview-body"></div></div>
+            <div class="modal-foot">
+                <button type="button" class="btn btn-secondary" onclick="app.closeBroadcastPreview()" data-i18n="btn_close">Cerrar</button>
+                <button type="button" id="bc-preview-send-btn" class="btn btn-primary" onclick="app.broadcastCustomBroadcast()">📢 <span data-i18n="bc_btn_send">Difundir Ahora</span></button>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<!-- Botón flotante de idioma (arrastrable) -->
+<div id="floating-lang-btn" role="button" aria-label="Cambiar idioma">
+    <span id="lang-indicator">ES</span>
+</div>
 
-<script>
-"use strict";
-const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-const API_BASE = (document.querySelector('meta[name="api-base"]').content || "").replace(/\/$/, "");
-const IN_TELEGRAM = !!(tg && tg.initData);
+<!-- Sesión de Telegram caducada -->
+<div id="session-expired" class="modal hidden" role="alertdialog" aria-modal="true" aria-labelledby="session-expired-title">
+    <div class="modal-dialog">
+        <div class="session-expired-box">
+            <span class="tile-icon tone-amber"><i class="fa-solid fa-hourglass-end"></i></span>
+            <h3 id="session-expired-title" data-i18n="session_expired_title">Sesión caducada</h3>
+            <p class="text-soft" data-i18n="session_expired_body">Tu sesión de Telegram ya no es válida. Cierra y vuelve a abrir la Mini App desde el bot.</p>
+            <button type="button" class="btn btn-primary btn-block" onclick="app.closeApp()" data-i18n="session_expired_btn">Cerrar</button>
+        </div>
+    </div>
+</div>
 
-const I18N = {
-  es: {
-    tagline:"Centro de mando de tus comunidades", st_connecting:"Conectando…", st_online:"Bot en línea", st_offline:"Sin conexión", st_preview:"Vista previa",
-    hello:"Hola, {name}", hello_guest:"Hola", hero_line:"{p} de {t} comunidades protegidas por el bot.", hero_none:"Todavía no has conectado ninguna comunidad.",
-    dial_label:"protegidas", k_rules:"Reglas activas", k_subs:"Planes activos", k_bot:"Bot",
-    preview_note:"Estás viendo una vista previa. Abre el dashboard desde el bot en Telegram para gestionar tus comunidades y comprar planes.",
-    sec_comm:"Tus comunidades", comm_empty:"Añade el bot como administrador de tu grupo o canal y aparecerá aquí.", add_group:"Añadir a un grupo",
-    adm_yes:"Protegida", adm_no:"Sin permisos", n_rules:"{n} reglas", manage:"Gestionar",
-    sec_plans:"Planes", plans_sub:"Pago único. Cada nivel incluye todo lo anterior.", choose_plan:"Elegir plan",
-    templates_btn:"Plantillas", tpl_title:"Plantillas listas", tpl_sub:"Aplica una configuración completa a una de tus comunidades en un paso.", tpl_target:"Comunidad", tpl_apply:"Aplicar plantilla", tpl_applied:"Plantilla aplicada", tpl_need:"Conecta una comunidad para usar plantillas.",
-    co_title:"Finalizar compra", co_method:"Método de pago", co_pay:"Pagar {amount}", co_unavailable:"No disponible", co_manual:"Transferencia manual", co_working:"Creando la orden…", co_check:"Comprobar pago", co_opened:"Completa el pago en la ventana abierta y luego pulsa «Comprobar pago».", co_need_tg:"Abre el dashboard desde Telegram para pagar.",
-    pay_ok:"Pago confirmado. Revisa el bot: allí está tu acceso.", pay_pending:"El pago aún no figura como confirmado.", pay_failed:"El pago no se completó.", pay_cancel:"Pago cancelado.",
-    cm_protect:"Protección", cm_rules:"Reglas", f_welcome_on:"Enviar bienvenida", f_welcome:"Mensaje de bienvenida", f_welcome_hint:"Variables: {first_name}, {username}, {chat_title}. Admite HTML de Telegram.",
-    f_captcha:"Captcha para nuevos miembros", f_timeout:"Tiempo para verificar (segundos)", f_black:"Palabras prohibidas", f_list_hint:"Sepáralas con comas.", f_black_act:"Si alguien las usa",
-    a_delete:"Borrar el mensaje", a_warn:"Borrar y avisar", a_kick:"Borrar y expulsar", f_roles:"Roles automáticos al entrar", save:"Guardar cambios", saved:"Cambios guardados",
-    r_empty:"Esta comunidad no tiene reglas. Crea la primera abajo.", r_when:"Cuando", r_then:"Entonces", r_value_cmd:"Comando (sin /)", r_value_kw:"Palabra o frase",
-    t_command:"Alguien usa un comando", t_keyword:"Un mensaje contiene", t_join:"Alguien entra al grupo",
-    x_send:"Responder con un mensaje", x_role:"Asignar un rol", x_kick:"Expulsar al usuario", x_wall:"Mostrar muro de pago",
-    p_text:"Texto del mensaje", p_wall_text:"Texto del muro (opcional)", p_role:"Nombre del rol", p_reason:"Motivo (opcional)", p_plan:"Plan que desbloquea",
-    add_rule:"Añadir regla", rule_added:"Regla añadida", del:"Eliminar", rule_deleted:"Regla eliminada", err:"Error: {e}", err_auth:"La sesión de Telegram expiró. Cierra y vuelve a abrir el dashboard."
-  },
-  en: {
-    tagline:"Command center for your communities", st_connecting:"Connecting…", st_online:"Bot online", st_offline:"Offline", st_preview:"Preview",
-    hello:"Hi, {name}", hello_guest:"Hi there", hero_line:"{p} of {t} communities protected by the bot.", hero_none:"You haven't connected a community yet.",
-    dial_label:"protected", k_rules:"Active rules", k_subs:"Active plans", k_bot:"Bot",
-    preview_note:"This is a preview. Open the dashboard from the bot in Telegram to manage your communities and buy plans.",
-    sec_comm:"Your communities", comm_empty:"Add the bot as an admin of your group or channel and it will show up here.", add_group:"Add to a group",
-    adm_yes:"Protected", adm_no:"No admin rights", n_rules:"{n} rules", manage:"Manage",
-    sec_plans:"Plans", plans_sub:"One-time payment. Each level includes everything below it.", choose_plan:"Choose plan",
-    templates_btn:"Templates", tpl_title:"Ready-made templates", tpl_sub:"Apply a full setup to one of your communities in one step.", tpl_target:"Community", tpl_apply:"Apply template", tpl_applied:"Template applied", tpl_need:"Connect a community to use templates.",
-    co_title:"Checkout", co_method:"Payment method", co_pay:"Pay {amount}", co_unavailable:"Unavailable", co_manual:"Manual transfer", co_working:"Creating order…", co_check:"Check payment", co_opened:"Finish paying in the window that opened, then tap “Check payment”.", co_need_tg:"Open the dashboard from Telegram to pay.",
-    pay_ok:"Payment confirmed. Check the bot for your access.", pay_pending:"The payment isn't confirmed yet.", pay_failed:"The payment didn't go through.", pay_cancel:"Payment cancelled.",
-    cm_protect:"Protection", cm_rules:"Rules", f_welcome_on:"Send welcome", f_welcome:"Welcome message", f_welcome_hint:"Variables: {first_name}, {username}, {chat_title}. Telegram HTML allowed.",
-    f_captcha:"Captcha for new members", f_timeout:"Time to verify (seconds)", f_black:"Banned words", f_list_hint:"Separate with commas.", f_black_act:"When someone uses them",
-    a_delete:"Delete the message", a_warn:"Delete and warn", a_kick:"Delete and kick", f_roles:"Automatic roles on join", save:"Save changes", saved:"Changes saved",
-    r_empty:"This community has no rules. Create the first one below.", r_when:"When", r_then:"Then", r_value_cmd:"Command (no /)", r_value_kw:"Word or phrase",
-    t_command:"Someone uses a command", t_keyword:"A message contains", t_join:"Someone joins the group",
-    x_send:"Reply with a message", x_role:"Assign a role", x_kick:"Kick the user", x_wall:"Show a paywall",
-    p_text:"Message text", p_wall_text:"Paywall text (optional)", p_role:"Role name", p_reason:"Reason (optional)", p_plan:"Plan it unlocks",
-    add_rule:"Add rule", rule_added:"Rule added", del:"Delete", rule_deleted:"Rule deleted", err:"Error: {e}", err_auth:"Your Telegram session expired. Close and reopen the dashboard."
-  },
-  it: {
-    tagline:"Centro di comando delle tue community", st_connecting:"Connessione…", st_online:"Bot online", st_offline:"Offline", st_preview:"Anteprima",
-    hello:"Ciao, {name}", hello_guest:"Ciao", hero_line:"{p} di {t} community protette dal bot.", hero_none:"Non hai ancora collegato nessuna community.",
-    dial_label:"protette", k_rules:"Regole attive", k_subs:"Piani attivi", k_bot:"Bot",
-    preview_note:"Questa è un'anteprima. Apri la dashboard dal bot su Telegram per gestire le community e acquistare piani.",
-    sec_comm:"Le tue community", comm_empty:"Aggiungi il bot come amministratore del gruppo o canale e comparirà qui.", add_group:"Aggiungi a un gruppo",
-    adm_yes:"Protetta", adm_no:"Senza permessi", n_rules:"{n} regole", manage:"Gestisci",
-    sec_plans:"Piani", plans_sub:"Pagamento unico. Ogni livello include tutto ciò che precede.", choose_plan:"Scegli piano",
-    templates_btn:"Modelli", tpl_title:"Modelli pronti", tpl_sub:"Applica una configurazione completa a una community in un solo passo.", tpl_target:"Community", tpl_apply:"Applica modello", tpl_applied:"Modello applicato", tpl_need:"Collega una community per usare i modelli.",
-    co_title:"Completa l'acquisto", co_method:"Metodo di pagamento", co_pay:"Paga {amount}", co_unavailable:"Non disponibile", co_manual:"Bonifico manuale", co_working:"Creazione ordine…", co_check:"Verifica pagamento", co_opened:"Completa il pagamento nella finestra aperta, poi tocca «Verifica pagamento».", co_need_tg:"Apri la dashboard da Telegram per pagare.",
-    pay_ok:"Pagamento confermato. Controlla il bot per il tuo accesso.", pay_pending:"Il pagamento non risulta ancora confermato.", pay_failed:"Il pagamento non è andato a buon fine.", pay_cancel:"Pagamento annullato.",
-    cm_protect:"Protezione", cm_rules:"Regole", f_welcome_on:"Invia benvenuto", f_welcome:"Messaggio di benvenuto", f_welcome_hint:"Variabili: {first_name}, {username}, {chat_title}. HTML di Telegram consentito.",
-    f_captcha:"Captcha per i nuovi membri", f_timeout:"Tempo per verificare (secondi)", f_black:"Parole vietate", f_list_hint:"Separale con virgole.", f_black_act:"Se qualcuno le usa",
-    a_delete:"Elimina il messaggio", a_warn:"Elimina e avvisa", a_kick:"Elimina ed espelli", f_roles:"Ruoli automatici all'ingresso", save:"Salva modifiche", saved:"Modifiche salvate",
-    r_empty:"Questa community non ha regole. Crea la prima qui sotto.", r_when:"Quando", r_then:"Allora", r_value_cmd:"Comando (senza /)", r_value_kw:"Parola o frase",
-    t_command:"Qualcuno usa un comando", t_keyword:"Un messaggio contiene", t_join:"Qualcuno entra nel gruppo",
-    x_send:"Rispondi con un messaggio", x_role:"Assegna un ruolo", x_kick:"Espelli l'utente", x_wall:"Mostra un paywall",
-    p_text:"Testo del messaggio", p_wall_text:"Testo del paywall (facoltativo)", p_role:"Nome del ruolo", p_reason:"Motivo (facoltativo)", p_plan:"Piano che sblocca",
-    add_rule:"Aggiungi regola", rule_added:"Regola aggiunta", del:"Elimina", rule_deleted:"Regola eliminata", err:"Errore: {e}", err_auth:"La sessione Telegram è scaduta. Chiudi e riapri la dashboard."
-  },
-  fr: {
-    tagline:"Centre de commande de tes communautés", st_connecting:"Connexion…", st_online:"Bot en ligne", st_offline:"Hors ligne", st_preview:"Aperçu",
-    hello:"Salut, {name}", hello_guest:"Salut", hero_line:"{p} sur {t} communautés protégées par le bot.", hero_none:"Tu n'as encore connecté aucune communauté.",
-    dial_label:"protégées", k_rules:"Règles actives", k_subs:"Offres actives", k_bot:"Bot",
-    preview_note:"Ceci est un aperçu. Ouvre le dashboard depuis le bot sur Telegram pour gérer tes communautés et acheter des offres.",
-    sec_comm:"Tes communautés", comm_empty:"Ajoute le bot comme administrateur de ton groupe ou canal pour le voir ici.", add_group:"Ajouter à un groupe",
-    adm_yes:"Protégée", adm_no:"Sans droits admin", n_rules:"{n} règles", manage:"Gérer",
-    sec_plans:"Offres", plans_sub:"Paiement unique. Chaque niveau inclut tout ce qui précède.", choose_plan:"Choisir l'offre",
-    templates_btn:"Modèles", tpl_title:"Modèles prêts à l'emploi", tpl_sub:"Applique une configuration complète à une communauté en une étape.", tpl_target:"Communauté", tpl_apply:"Appliquer le modèle", tpl_applied:"Modèle appliqué", tpl_need:"Connecte une communauté pour utiliser les modèles.",
-    co_title:"Finaliser l'achat", co_method:"Moyen de paiement", co_pay:"Payer {amount}", co_unavailable:"Indisponible", co_manual:"Virement manuel", co_working:"Création de la commande…", co_check:"Vérifier le paiement", co_opened:"Termine le paiement dans la fenêtre ouverte, puis touche « Vérifier le paiement ».", co_need_tg:"Ouvre le dashboard depuis Telegram pour payer.",
-    pay_ok:"Paiement confirmé. Ton accès t'attend dans le bot.", pay_pending:"Le paiement n'est pas encore confirmé.", pay_failed:"Le paiement n'a pas abouti.", pay_cancel:"Paiement annulé.",
-    cm_protect:"Protection", cm_rules:"Règles", f_welcome_on:"Envoyer un message d'accueil", f_welcome:"Message d'accueil", f_welcome_hint:"Variables : {first_name}, {username}, {chat_title}. HTML Telegram accepté.",
-    f_captcha:"Captcha pour les nouveaux membres", f_timeout:"Délai de vérification (secondes)", f_black:"Mots interdits", f_list_hint:"Sépare-les par des virgules.", f_black_act:"Si quelqu'un les utilise",
-    a_delete:"Supprimer le message", a_warn:"Supprimer et avertir", a_kick:"Supprimer et expulser", f_roles:"Rôles automatiques à l'arrivée", save:"Enregistrer", saved:"Modifications enregistrées",
-    r_empty:"Cette communauté n'a aucune règle. Crée la première ci-dessous.", r_when:"Quand", r_then:"Alors", r_value_cmd:"Commande (sans /)", r_value_kw:"Mot ou phrase",
-    t_command:"Quelqu'un utilise une commande", t_keyword:"Un message contient", t_join:"Quelqu'un rejoint le groupe",
-    x_send:"Répondre par un message", x_role:"Attribuer un rôle", x_kick:"Expulser l'utilisateur", x_wall:"Afficher un paywall",
-    p_text:"Texte du message", p_wall_text:"Texte du paywall (facultatif)", p_role:"Nom du rôle", p_reason:"Motif (facultatif)", p_plan:"Offre débloquée",
-    add_rule:"Ajouter la règle", rule_added:"Règle ajoutée", del:"Supprimer", rule_deleted:"Règle supprimée", err:"Erreur : {e}", err_auth:"Ta session Telegram a expiré. Ferme et rouvre le dashboard."
-  },
-  de: {
-    tagline:"Kommandozentrale deiner Communities", st_connecting:"Verbinde…", st_online:"Bot online", st_offline:"Offline", st_preview:"Vorschau",
-    hello:"Hallo, {name}", hello_guest:"Hallo", hero_line:"{p} von {t} Communities werden vom Bot geschützt.", hero_none:"Du hast noch keine Community verbunden.",
-    dial_label:"geschützt", k_rules:"Aktive Regeln", k_subs:"Aktive Tarife", k_bot:"Bot",
-    preview_note:"Das ist eine Vorschau. Öffne das Dashboard über den Bot in Telegram, um Communities zu verwalten und Tarife zu kaufen.",
-    sec_comm:"Deine Communities", comm_empty:"Mach den Bot zum Admin deiner Gruppe oder deines Kanals, dann erscheint sie hier.", add_group:"Zu einer Gruppe hinzufügen",
-    adm_yes:"Geschützt", adm_no:"Keine Adminrechte", n_rules:"{n} Regeln", manage:"Verwalten",
-    sec_plans:"Tarife", plans_sub:"Einmalzahlung. Jede Stufe enthält alles darunter.", choose_plan:"Tarif wählen",
-    templates_btn:"Vorlagen", tpl_title:"Fertige Vorlagen", tpl_sub:"Wende eine komplette Konfiguration in einem Schritt auf eine Community an.", tpl_target:"Community", tpl_apply:"Vorlage anwenden", tpl_applied:"Vorlage angewendet", tpl_need:"Verbinde eine Community, um Vorlagen zu nutzen.",
-    co_title:"Kauf abschließen", co_method:"Zahlungsart", co_pay:"{amount} bezahlen", co_unavailable:"Nicht verfügbar", co_manual:"Manuelle Überweisung", co_working:"Bestellung wird erstellt…", co_check:"Zahlung prüfen", co_opened:"Schließe die Zahlung im geöffneten Fenster ab und tippe dann auf „Zahlung prüfen“.", co_need_tg:"Öffne das Dashboard in Telegram, um zu bezahlen.",
-    pay_ok:"Zahlung bestätigt. Deinen Zugang findest du im Bot.", pay_pending:"Die Zahlung ist noch nicht bestätigt.", pay_failed:"Die Zahlung ist fehlgeschlagen.", pay_cancel:"Zahlung abgebrochen.",
-    cm_protect:"Schutz", cm_rules:"Regeln", f_welcome_on:"Begrüßung senden", f_welcome:"Begrüßungsnachricht", f_welcome_hint:"Variablen: {first_name}, {username}, {chat_title}. Telegram-HTML erlaubt.",
-    f_captcha:"Captcha für neue Mitglieder", f_timeout:"Zeit zur Bestätigung (Sekunden)", f_black:"Verbotene Wörter", f_list_hint:"Mit Kommas trennen.", f_black_act:"Wenn jemand sie benutzt",
-    a_delete:"Nachricht löschen", a_warn:"Löschen und verwarnen", a_kick:"Löschen und entfernen", f_roles:"Automatische Rollen beim Beitritt", save:"Änderungen speichern", saved:"Änderungen gespeichert",
-    r_empty:"Diese Community hat keine Regeln. Erstelle unten die erste.", r_when:"Wenn", r_then:"Dann", r_value_cmd:"Befehl (ohne /)", r_value_kw:"Wort oder Satz",
-    t_command:"Jemand nutzt einen Befehl", t_keyword:"Eine Nachricht enthält", t_join:"Jemand tritt der Gruppe bei",
-    x_send:"Mit Nachricht antworten", x_role:"Rolle zuweisen", x_kick:"Nutzer entfernen", x_wall:"Paywall anzeigen",
-    p_text:"Nachrichtentext", p_wall_text:"Paywall-Text (optional)", p_role:"Rollenname", p_reason:"Grund (optional)", p_plan:"Freigeschalteter Tarif",
-    add_rule:"Regel hinzufügen", rule_added:"Regel hinzugefügt", del:"Löschen", rule_deleted:"Regel gelöscht", err:"Fehler: {e}", err_auth:"Deine Telegram-Sitzung ist abgelaufen. Schließe das Dashboard und öffne es erneut."
-  },
-  pt: {
-    tagline:"Centro de comando das suas comunidades", st_connecting:"Conectando…", st_online:"Bot online", st_offline:"Offline", st_preview:"Prévia",
-    hello:"Olá, {name}", hello_guest:"Olá", hero_line:"{p} de {t} comunidades protegidas pelo bot.", hero_none:"Você ainda não conectou nenhuma comunidade.",
-    dial_label:"protegidas", k_rules:"Regras ativas", k_subs:"Planos ativos", k_bot:"Bot",
-    preview_note:"Esta é uma prévia. Abra o dashboard pelo bot no Telegram para gerenciar suas comunidades e comprar planos.",
-    sec_comm:"Suas comunidades", comm_empty:"Adicione o bot como administrador do seu grupo ou canal e ele aparecerá aqui.", add_group:"Adicionar a um grupo",
-    adm_yes:"Protegida", adm_no:"Sem permissões", n_rules:"{n} regras", manage:"Gerenciar",
-    sec_plans:"Planos", plans_sub:"Pagamento único. Cada nível inclui tudo o que vem antes.", choose_plan:"Escolher plano",
-    templates_btn:"Modelos", tpl_title:"Modelos prontos", tpl_sub:"Aplique uma configuração completa a uma comunidade em um passo.", tpl_target:"Comunidade", tpl_apply:"Aplicar modelo", tpl_applied:"Modelo aplicado", tpl_need:"Conecte uma comunidade para usar modelos.",
-    co_title:"Finalizar compra", co_method:"Forma de pagamento", co_pay:"Pagar {amount}", co_unavailable:"Indisponível", co_manual:"Transferência manual", co_working:"Criando o pedido…", co_check:"Verificar pagamento", co_opened:"Conclua o pagamento na janela aberta e depois toque em “Verificar pagamento”.", co_need_tg:"Abra o dashboard pelo Telegram para pagar.",
-    pay_ok:"Pagamento confirmado. Seu acesso está no bot.", pay_pending:"O pagamento ainda não consta como confirmado.", pay_failed:"O pagamento não foi concluído.", pay_cancel:"Pagamento cancelado.",
-    cm_protect:"Proteção", cm_rules:"Regras", f_welcome_on:"Enviar boas-vindas", f_welcome:"Mensagem de boas-vindas", f_welcome_hint:"Variáveis: {first_name}, {username}, {chat_title}. HTML do Telegram permitido.",
-    f_captcha:"Captcha para novos membros", f_timeout:"Tempo para verificar (segundos)", f_black:"Palavras proibidas", f_list_hint:"Separe com vírgulas.", f_black_act:"Se alguém usar",
-    a_delete:"Apagar a mensagem", a_warn:"Apagar e avisar", a_kick:"Apagar e expulsar", f_roles:"Cargos automáticos ao entrar", save:"Salvar alterações", saved:"Alterações salvas",
-    r_empty:"Esta comunidade não tem regras. Crie a primeira abaixo.", r_when:"Quando", r_then:"Então", r_value_cmd:"Comando (sem /)", r_value_kw:"Palavra ou frase",
-    t_command:"Alguém usa um comando", t_keyword:"Uma mensagem contém", t_join:"Alguém entra no grupo",
-    x_send:"Responder com uma mensagem", x_role:"Atribuir um cargo", x_kick:"Expulsar o usuário", x_wall:"Mostrar paywall",
-    p_text:"Texto da mensagem", p_wall_text:"Texto do paywall (opcional)", p_role:"Nome do cargo", p_reason:"Motivo (opcional)", p_plan:"Plano que desbloqueia",
-    add_rule:"Adicionar regra", rule_added:"Regra adicionada", del:"Excluir", rule_deleted:"Regra excluída", err:"Erro: {e}", err_auth:"Sua sessão do Telegram expirou. Feche e abra o dashboard de novo."
-  }
-};
+<!-- Avisos flotantes -->
+<div id="toast-stack" aria-live="polite"></div>
 
-const PLAN_I18N = {
-  es:{starter:["Pack de Arranque","Protección base para una comunidad que empieza a crecer.",["Captcha anti-bots","Bienvenida personalizada","Lista de palabras prohibidas"]],
-      paid_channels:["Canales de Pago","Cobra el acceso a tu canal con invitaciones VIP automáticas.",["Muro de pago con Stars, PayPal y Binance","Invitaciones de un solo uso","Todo lo del nivel 1"]],
-      ecommerce_pro:["E-Commerce Pro","Vende y responde a clientes con reglas por bloques.",["Reglas por bloques ilimitadas","Catálogo y respuestas automáticas","Todo lo del nivel 2"]],
-      enterprise:["Enterprise Blindaje Total","Protección y automatización a medida para redes de comunidades.",["Despliegue dedicado","Soporte prioritario 24/7","Todo lo del nivel 3"]]},
-  en:{starter:["Starter Pack","Core protection for a community that's starting to grow.",["Anti-bot captcha","Custom welcome","Banned-word list"]],
-      paid_channels:["Paid Channels","Charge for channel access with automatic VIP invites.",["Paywall with Stars, PayPal and Binance","Single-use invite links","Everything in level 1"]],
-      ecommerce_pro:["E-Commerce Pro","Sell and answer customers with block rules.",["Unlimited block rules","Catalog and auto-replies","Everything in level 2"]],
-      enterprise:["Enterprise Total Shield","Tailored protection and automation for community networks.",["Dedicated deployment","Priority 24/7 support","Everything in level 3"]]},
-  it:{starter:["Pack di Avvio","Protezione di base per una community in crescita.",["Captcha anti-bot","Benvenuto personalizzato","Lista di parole vietate"]],
-      paid_channels:["Canali a Pagamento","Fai pagare l'accesso al canale con inviti VIP automatici.",["Paywall con Stars, PayPal e Binance","Inviti monouso","Tutto il livello 1"]],
-      ecommerce_pro:["E-Commerce Pro","Vendi e rispondi ai clienti con regole a blocchi.",["Regole a blocchi illimitate","Catalogo e risposte automatiche","Tutto il livello 2"]],
-      enterprise:["Enterprise Protezione Totale","Protezione e automazione su misura per reti di community.",["Deploy dedicato","Supporto prioritario 24/7","Tutto il livello 3"]]},
-  fr:{starter:["Pack de Démarrage","Protection de base pour une communauté qui grandit.",["Captcha anti-bots","Accueil personnalisé","Liste de mots interdits"]],
-      paid_channels:["Canaux Payants","Fais payer l'accès à ton canal avec des invitations VIP automatiques.",["Paywall avec Stars, PayPal et Binance","Invitations à usage unique","Tout le niveau 1"]],
-      ecommerce_pro:["E-Commerce Pro","Vends et réponds aux clients avec des règles par blocs.",["Règles par blocs illimitées","Catalogue et réponses automatiques","Tout le niveau 2"]],
-      enterprise:["Enterprise Blindage Total","Protection et automatisation sur mesure pour réseaux de communautés.",["Déploiement dédié","Support prioritaire 24/7","Tout le niveau 3"]]},
-  de:{starter:["Starter-Paket","Basisschutz für eine wachsende Community.",["Anti-Bot-Captcha","Individuelle Begrüßung","Liste verbotener Wörter"]],
-      paid_channels:["Bezahlkanäle","Verlange Geld für Kanalzugang mit automatischen VIP-Einladungen.",["Paywall mit Stars, PayPal und Binance","Einmal-Einladungslinks","Alles aus Stufe 1"]],
-      ecommerce_pro:["E-Commerce Pro","Verkaufe und antworte Kunden mit Block-Regeln.",["Unbegrenzte Block-Regeln","Katalog und Auto-Antworten","Alles aus Stufe 2"]],
-      enterprise:["Enterprise Totalschutz","Maßgeschneiderter Schutz und Automatisierung für Community-Netzwerke.",["Eigenes Deployment","Priorisierter 24/7-Support","Alles aus Stufe 3"]]},
-  pt:{starter:["Pacote Inicial","Proteção básica para uma comunidade que está crescendo.",["Captcha anti-bots","Boas-vindas personalizadas","Lista de palavras proibidas"]],
-      paid_channels:["Canais Pagos","Cobre pelo acesso ao canal com convites VIP automáticos.",["Paywall com Stars, PayPal e Binance","Convites de uso único","Tudo do nível 1"]],
-      ecommerce_pro:["E-Commerce Pro","Venda e responda clientes com regras em blocos.",["Regras em blocos ilimitadas","Catálogo e respostas automáticas","Tudo do nível 2"]],
-      enterprise:["Enterprise Blindagem Total","Proteção e automação sob medida para redes de comunidades.",["Implantação dedicada","Suporte prioritário 24/7","Tudo do nível 3"]]}
-};
-
-const TEMPLATES = {
-  es:[["🔐","Comunidad VIP","Captcha, bienvenida y muro de pago en /vip.","¡Bienvenido/a <b>{first_name}</b>! Escribe /vip para desbloquear el contenido premium.","",""],
-      ["🛡️","Antispam total","Captcha rápido, filtro de enlaces y estafas, rol de recién llegado.","👋 {first_name}, lee las reglas antes de publicar.","",""],
-      ["🛒","Tienda en Telegram","Comandos de catálogo y respuesta automática sobre envíos.","¡Hola {first_name}! Usa /catalogo para ver los productos.","📦 Nuestro catálogo: escribe al administrador con el producto que quieres.","🚚 Hacemos envíos a todo el país en 2-5 días hábiles."]],
-  en:[["🔐","VIP community","Captcha, welcome and a paywall on /vip.","Welcome <b>{first_name}</b>! Type /vip to unlock premium content.","",""],
-      ["🛡️","Total anti-spam","Fast captcha, link and scam filter, newcomer role.","👋 {first_name}, please read the rules before posting.","",""],
-      ["🛒","Telegram shop","Catalog commands and an auto-reply about shipping.","Hi {first_name}! Use /catalogo to see our products.","📦 Our catalog: message the admin with the product you want.","🚚 We ship nationwide in 2-5 business days."]],
-  it:[["🔐","Community VIP","Captcha, benvenuto e paywall su /vip.","Benvenuto/a <b>{first_name}</b>! Scrivi /vip per sbloccare i contenuti premium.","",""],
-      ["🛡️","Anti-spam totale","Captcha rapido, filtro link e truffe, ruolo per i nuovi.","👋 {first_name}, leggi le regole prima di scrivere.","",""],
-      ["🛒","Negozio su Telegram","Comandi catalogo e risposta automatica sulle spedizioni.","Ciao {first_name}! Usa /catalogo per vedere i prodotti.","📦 Il nostro catalogo: scrivi all'admin il prodotto che desideri.","🚚 Spediamo in tutto il paese in 2-5 giorni lavorativi."]],
-  fr:[["🔐","Communauté VIP","Captcha, accueil et paywall sur /vip.","Bienvenue <b>{first_name}</b> ! Tape /vip pour débloquer le contenu premium.","",""],
-      ["🛡️","Anti-spam total","Captcha rapide, filtre liens et arnaques, rôle nouveau venu.","👋 {first_name}, lis les règles avant de publier.","",""],
-      ["🛒","Boutique Telegram","Commandes catalogue et réponse automatique sur la livraison.","Salut {first_name} ! Utilise /catalogo pour voir les produits.","📦 Notre catalogue : écris à l'admin le produit souhaité.","🚚 Livraison dans tout le pays en 2 à 5 jours ouvrés."]],
-  de:[["🔐","VIP-Community","Captcha, Begrüßung und Paywall auf /vip.","Willkommen <b>{first_name}</b>! Schreib /vip, um Premium-Inhalte freizuschalten.","",""],
-      ["🛡️","Totaler Spamschutz","Schnelles Captcha, Link- und Betrugsfilter, Neulingsrolle.","👋 {first_name}, lies bitte die Regeln, bevor du postest.","",""],
-      ["🛒","Telegram-Shop","Katalogbefehle und Auto-Antwort zum Versand.","Hallo {first_name}! Nutze /catalogo, um die Produkte zu sehen.","📦 Unser Katalog: Schreib dem Admin, welches Produkt du willst.","🚚 Wir liefern landesweit in 2-5 Werktagen."]],
-  pt:[["🔐","Comunidade VIP","Captcha, boas-vindas e paywall em /vip.","Bem-vindo(a) <b>{first_name}</b>! Digite /vip para liberar o conteúdo premium.","",""],
-      ["🛡️","Antispam total","Captcha rápido, filtro de links e golpes, cargo de novato.","👋 {first_name}, leia as regras antes de postar.","",""],
-      ["🛒","Loja no Telegram","Comandos de catálogo e resposta automática sobre entregas.","Olá {first_name}! Use /catalogo para ver os produtos.","📦 Nosso catálogo: fale com o admin sobre o produto que deseja.","🚚 Entregamos em todo o país em 2 a 5 dias úteis."]]
-};
-
-const GATEWAYS = [
-  {id:"stars", icon:"⭐", name:"Telegram Stars"},
-  {id:"paypal", icon:"🅿️", name:"PayPal"},
-  {id:"binance", icon:"🪙", name:"Binance Pay"},
-  {id:"global66", icon:"🌎", name:"Global66", manual:true},
-  {id:"payoneer", icon:"💼", name:"Payoneer", manual:true}
-];
-
-const S = {lang:"es", config:null, info:null, plan:null, tx:null, community:null};
-const $ = (id) => document.getElementById(id);
-
-function esc(v){return String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function t(key, vars){
-  const s = (I18N[S.lang] && I18N[S.lang][key]) ?? I18N.es[key] ?? key;
-  return vars ? s.replace(/\{(\w+)\}/g, (m, n) => (n in vars ? vars[n] : m)) : s;
-}
-function planText(id){
-  const table = PLAN_I18N[S.lang] || PLAN_I18N.es;
-  return table[id] || PLAN_I18N.es[id] || [id, "", []];
-}
-function haptic(kind){ try{ tg && tg.HapticFeedback && tg.HapticFeedback.notificationOccurred(kind); }catch(e){} }
-
-let toastTimer = null;
-function toast(msg, isErr){
-  const el = $("toast");
-  el.textContent = msg;
-  el.classList.toggle("err", !!isErr);
-  el.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("show"), 3200);
-  haptic(isErr ? "error" : "success");
-}
-
-async function api(path, opts){
-  const o = opts || {};
-  const headers = {"Content-Type":"application/json"};
-  if (tg && tg.initData) headers["X-Telegram-Init-Data"] = tg.initData;
-  const res = await fetch(API_BASE + path, {method:o.method || "GET", headers, body:o.body ? JSON.stringify(o.body) : undefined});
-  let data = null;
-  try { data = await res.json(); } catch(e) { data = null; }
-  if (!res.ok){
-    const d = data && data.detail;
-    const msg = res.status === 401 ? t("err_auth") : Array.isArray(d) ? d.map(x => x.msg).join("; ") : (d || res.statusText);
-    const err = new Error(msg); err.status = res.status; throw err;
-  }
-  return data;
-}
-
-/* ---------- i18n estático ---------- */
-function applyI18n(){
-  document.documentElement.lang = S.lang;
-  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
-  $("langSelect").value = S.lang;
-}
-
-/* ---------- Estado de conexión ---------- */
-function setStatus(state){
-  $("status").dataset.s = state;
-  $("statusText").textContent = t("st_" + state);
-  $("kBot").textContent = state === "online" ? "OK" : state === "offline" ? "—" : "…";
-}
-
-/* ---------- Dial ---------- */
-const TICKS = 40;
-function buildDial(){
-  const svg = $("dialSvg");
-  let out = "";
-  for (let i = 0; i < TICKS; i++){
-    const a = (i / TICKS) * Math.PI * 2 - Math.PI / 2;
-    const r1 = 72, r2 = i % 5 === 0 ? 60 : 64;
-    const x1 = 84 + r1*Math.cos(a), y1 = 84 + r1*Math.sin(a), x2 = 84 + r2*Math.cos(a), y2 = 84 + r2*Math.sin(a);
-    out += `<line class="tick" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
-  }
-  out += `<circle cx="84" cy="84" r="52" fill="none" stroke="#2e3d4d" stroke-width="1"/>`;
-  svg.innerHTML = out;
-}
-function setDial(protectedCount, total){
-  const lit = total > 0 ? Math.round((protectedCount / total) * TICKS) : 0;
-  const ticks = $("dialSvg").querySelectorAll(".tick");
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  ticks.forEach((el, i) => {
-    el.classList.remove("lit");
-    if (i < lit){
-      if (reduce) el.classList.add("lit");
-      else setTimeout(() => el.classList.add("lit"), 18 * i);
-    }
-  });
-  $("dialNum").textContent = protectedCount;
-}
-
-/* ---------- Render ---------- */
-function renderHero(){
-  const info = S.info;
-  const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
-  const name = (info && info.user.first_name) || (tgUser && tgUser.first_name) || "";
-  $("hello").textContent = name ? t("hello", {name}) : t("hello_guest");
-  const st = info ? info.stats : {communities:0, protected:0, rules:0, active_subscriptions:0};
-  $("heroLine").textContent = st.communities ? t("hero_line", {p:st.protected, t:st.communities}) : t("hero_none");
-  $("kRules").textContent = st.rules;
-  $("kSubs").textContent = st.active_subscriptions;
-  setDial(st.protected, st.communities);
-}
-
-function addGroupUrl(){
-  const u = S.config && S.config.bot_username;
-  return u ? `https://t.me/${u}?startgroup=alpha&admin=delete_messages+restrict_members+invite_users+pin_messages` : null;
-}
-
-function renderCommunities(){
-  const list = $("communityList");
-  const items = S.info ? S.info.communities : [];
-  if (!items.length){
-    const url = addGroupUrl();
-    list.innerHTML = `<div class="empty"><p class="muted">${esc(t("comm_empty"))}</p>${url ? `<button class="btn primary" id="addGroupBtn">${esc(t("add_group"))}</button>` : ""}</div>`;
-    const b = $("addGroupBtn");
-    if (b) b.onclick = () => openExternal(url, true);
-    return;
-  }
-  list.innerHTML = items.map(c => `
-    <div class="row">
-      <div class="avatar">${esc((c.title || "?").trim().charAt(0).toUpperCase())}</div>
-      <div class="meta"><b>${esc(c.title)}</b><small><span class="flag ${c.bot_is_admin ? "ok" : "warn"}">${esc(t(c.bot_is_admin ? "adm_yes" : "adm_no"))}</span> ${esc(t("n_rules", {n:c.rules_count}))}</small></div>
-      <button class="btn" data-manage="${c.chat_id}">${esc(t("manage"))}</button>
-    </div>`).join("");
-  list.querySelectorAll("[data-manage]").forEach(b => b.onclick = () => openCommunity(Number(b.dataset.manage)));
-}
-
-function renderPlans(){
-  const plans = (S.config && S.config.plans) || [];
-  const ladder = $("planLadder");
-  ladder.innerHTML = plans.map((p, i) => {
-    const [name, desc, feats] = planText(p.id);
-    return `<div class="step ${i === plans.length - 1 ? "top" : ""}">
-      <div class="lvl"><b>${p.level}</b></div>
-      <div class="card">
-        <header><h3>${esc(name)}</h3><span class="price">$${Math.round(p.price_usd)}</span></header>
-        <p class="muted">${esc(desc)}</p>
-        <ul>${feats.map(f => `<li>${esc(f)}</li>`).join("")}</ul>
-        <button class="btn ${i === plans.length - 1 ? "primary" : ""}" data-plan="${esc(p.id)}">${esc(t("choose_plan"))}</button>
-      </div></div>`;
-  }).join("");
-  ladder.querySelectorAll("[data-plan]").forEach(b => b.onclick = () => openCheckout(b.dataset.plan));
-}
-
-function renderAll(){
-  applyI18n();
-  setStatus($("status").dataset.s);
-  renderHero();
-  renderCommunities();
-  renderPlans();
-  if (S.plan && $("checkoutModal").classList.contains("open")) renderCheckout();
-  if (S.community && $("communityModal").classList.contains("open")) { updateBuilder(); renderRules(); }
-  if ($("tplModal").classList.contains("open")) renderTemplates();
-}
-
-/* ---------- Modales ---------- */
-function openModal(id){
-  $(id).classList.add("open");
-  if (tg && tg.BackButton){ tg.BackButton.show(); }
-}
-function closeModal(id){
-  $(id).classList.remove("open");
-  if (tg && tg.BackButton && !document.querySelector(".overlay.open")) tg.BackButton.hide();
-}
-function closeTopModal(){
-  const open = [...document.querySelectorAll(".overlay.open")];
-  if (open.length) closeModal(open[open.length - 1].id);
-}
-document.querySelectorAll(".overlay").forEach(o => {
-  o.addEventListener("click", e => { if (e.target === o || e.target.hasAttribute("data-close")) closeModal(o.id); });
-});
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeTopModal(); });
-
-function openExternal(url, telegramLink){
-  if (!url) return;
-  if (tg && telegramLink && tg.openTelegramLink && url.startsWith("https://t.me/")) tg.openTelegramLink(url);
-  else if (tg && tg.openLink) tg.openLink(url);
-  else window.open(url, "_blank", "noopener");
-}
-
-/* ---------- Checkout ---------- */
-function gatewayEnabled(id){ return !!(S.config && S.config.gateways && S.config.gateways[id]); }
-
-function priceFor(plan, gateway){
-  if (gateway === "stars"){
-    const rate = (S.config && S.config.stars_per_usd) || 77;
-    return Math.max(1, Math.round(plan.price_usd * rate)).toLocaleString() + " ⭐";
-  }
-  if (gateway === "binance") return Math.round(plan.price_usd) + " USDT";
-  return "$" + Math.round(plan.price_usd) + " USD";
-}
-
-function openCheckout(planId){
-  S.plan = (S.config.plans || []).find(p => p.id === planId);
-  if (!S.plan) return;
-  S.tx = null;
-  const first = GATEWAYS.find(g => gatewayEnabled(g.id));
-  S.gateway = first ? first.id : null;
-  $("coInfo").classList.add("hidden");
-  $("coCheck").classList.add("hidden");
-  renderCheckout();
-  openModal("checkoutModal");
-}
-
-function renderCheckout(){
-  const plan = S.plan;
-  $("coPlan").textContent = planText(plan.id)[0];
-  $("coPrice").textContent = priceFor(plan, S.gateway || "paypal");
-  $("gatewayList").innerHTML = GATEWAYS.map(g => {
-    const on = gatewayEnabled(g.id);
-    const sub = !on ? t("co_unavailable") : g.manual ? t("co_manual") : "";
-    return `<label class="${on ? "" : "off"}"><input type="radio" name="gw" value="${g.id}" ${on ? "" : "disabled"} ${S.gateway === g.id ? "checked" : ""}>
-      <span>${g.icon}</span><span class="gname">${esc(g.name)}</span><small>${esc(sub)}</small></label>`;
-  }).join("");
-  $("gatewayList").querySelectorAll("input").forEach(r => r.onchange = () => { S.gateway = r.value; $("coPrice").textContent = priceFor(plan, S.gateway); updatePayButton(); });
-  updatePayButton();
-}
-
-function updatePayButton(){
-  const btn = $("coPay");
-  btn.textContent = t("co_pay", {amount: priceFor(S.plan, S.gateway || "paypal")});
-  btn.disabled = !S.gateway || !IN_TELEGRAM;
-  if (!IN_TELEGRAM){ showInfo(t("co_need_tg")); }
-}
-function showInfo(text){ const el = $("coInfo"); el.textContent = text; el.classList.remove("hidden"); }
-
-$("coPay").onclick = async () => {
-  if (!S.plan || !S.gateway) return;
-  const btn = $("coPay");
-  btn.disabled = true; btn.textContent = t("co_working");
-  try{
-    const res = await api("/api/v1/dashboard/checkout/create-order", {method:"POST", body:{plan_id:S.plan.id, gateway:S.gateway}});
-    S.tx = res.transaction_id;
-    if (res.invoice_link){
-      if (tg && tg.openInvoice){
-        tg.openInvoice(res.invoice_link, status => {
-          if (status === "paid"){ toast(t("pay_ok")); closeModal("checkoutModal"); setTimeout(loadUser, 1500); }
-          else if (status === "cancelled") toast(t("pay_cancel"));
-          else if (status === "failed") toast(t("pay_failed"), true);
-        });
-      } else openExternal(res.invoice_link, true);
-    } else if (res.payment_url){
-      openExternal(res.payment_url, false);
-      showInfo(t("co_opened"));
-      $("coCheck").classList.remove("hidden");
-    } else if (res.instructions){
-      showInfo(res.instructions);
-    }
-  }catch(e){ toast(t("err", {e:e.message}), true); }
-  finally{ updatePayButton(); }
-};
-
-$("coCheck").onclick = async () => {
-  if (!S.tx) return;
-  try{
-    const res = await api(`/api/v1/dashboard/checkout/${encodeURIComponent(S.tx)}/verify`, {method:"POST"});
-    const st = res.transaction.status;
-    if (st === "completed"){ toast(t("pay_ok")); closeModal("checkoutModal"); loadUser(); }
-    else if (st === "failed") toast(t("pay_failed"), true);
-    else toast(t("pay_pending"));
-  }catch(e){ toast(t("err", {e:e.message}), true); }
-};
-
-/* ---------- Comunidad: protección y reglas ---------- */
-function splitList(v){ return v.split(",").map(s => s.trim()).filter(Boolean); }
-
-async function openCommunity(chatId){
-  try{
-    const [s, r] = await Promise.all([
-      api(`/api/v1/dashboard/communities/${chatId}/settings`),
-      api(`/api/v1/dashboard/communities/${chatId}/rules`)
-    ]);
-    S.community = {chat_id:chatId, title:s.title, settings:s.settings, rules:r.rules};
-    $("cmTitle").textContent = s.title;
-    fillSettings(s.settings);
-    selectTab("protect");
-    updateBuilder();
-    renderRules();
-    openModal("communityModal");
-  }catch(e){ toast(t("err", {e:e.message}), true); }
-}
-
-function fillSettings(st){
-  $("sWelcomeOn").checked = st.welcome_enabled;
-  $("sWelcome").value = st.welcome_message;
-  $("sCaptcha").checked = st.captcha_enabled;
-  $("sTimeout").value = st.captcha_timeout;
-  $("sBlack").value = st.blacklist.join(", ");
-  $("sBlackAct").value = st.blacklist_action;
-  $("sRoles").value = st.auto_roles.join(", ");
-}
-
-function selectTab(name){
-  document.querySelectorAll(".tabs [data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
-  $("tab-protect").classList.toggle("hidden", name !== "protect");
-  $("tab-rules").classList.toggle("hidden", name !== "rules");
-}
-document.querySelectorAll(".tabs [data-tab]").forEach(b => b.onclick = () => selectTab(b.dataset.tab));
-
-$("saveSettings").onclick = async () => {
-  const c = S.community; if (!c) return;
-  const timeout = Math.min(3600, Math.max(30, parseInt($("sTimeout").value, 10) || 120));
-  const body = {
-    welcome_enabled:$("sWelcomeOn").checked, welcome_message:$("sWelcome").value,
-    captcha_enabled:$("sCaptcha").checked, captcha_timeout:timeout,
-    blacklist:splitList($("sBlack").value), blacklist_action:$("sBlackAct").value,
-    auto_roles:splitList($("sRoles").value)
-  };
-  try{
-    const res = await api(`/api/v1/dashboard/communities/${c.chat_id}/settings`, {method:"POST", body});
-    c.settings = res.settings; fillSettings(res.settings); toast(t("saved"));
-  }catch(e){ toast(t("err", {e:e.message}), true); }
-};
-
-function describeRule(r){
-  const trig = {command:"t_command", keyword:"t_keyword", join:"t_join"}[r.trigger_type];
-  const act = {send_message:"x_send", add_role:"x_role", kick:"x_kick", payment_wall:"x_wall"}[r.action_type];
-  const val = r.trigger_type === "command" ? " /" + r.trigger_value : r.trigger_type === "keyword" ? ` “${r.trigger_value}”` : "";
-  let detail = "";
-  if (r.action_type === "send_message") detail = r.payload.text;
-  else if (r.action_type === "add_role") detail = r.payload.role;
-  else if (r.action_type === "kick") detail = r.payload.reason || "";
-  else if (r.action_type === "payment_wall") detail = planText(r.payload.plan_id)[0];
-  return `<b>${esc(t(trig))}${esc(val)}</b> → ${esc(t(act))}${detail ? `<p>${esc(detail)}</p>` : ""}`;
-}
-
-function renderRules(){
-  const c = S.community; const box = $("ruleList");
-  if (!c.rules.length){ box.innerHTML = `<p class="muted">${esc(t("r_empty"))}</p>`; return; }
-  box.innerHTML = c.rules.map(r => `<div class="rule"><div class="flow">${describeRule(r)}</div><button class="btn danger" data-del="${esc(r.block_id)}">${esc(t("del"))}</button></div>`).join("");
-  box.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
-    try{
-      await api(`/api/v1/dashboard/communities/${c.chat_id}/rules/${encodeURIComponent(b.dataset.del)}`, {method:"DELETE"});
-      c.rules = c.rules.filter(r => r.block_id !== b.dataset.del); renderRules(); toast(t("rule_deleted"));
-    }catch(e){ toast(t("err", {e:e.message}), true); }
-  });
-}
-
-function updateBuilder(){
-  const trig = $("rTrigger").value, act = $("rAction").value;
-  $("rValueWrap").classList.toggle("hidden", trig === "join");
-  $("rValueLabel").textContent = t(trig === "command" ? "r_value_cmd" : "r_value_kw");
-  $("pTextWrap").classList.toggle("hidden", act === "add_role");
-  $("pTextLabel").textContent = t(act === "kick" ? "p_reason" : act === "payment_wall" ? "p_wall_text" : "p_text");
-  $("pRoleWrap").classList.toggle("hidden", act !== "add_role");
-  $("pPlanWrap").classList.toggle("hidden", act !== "payment_wall");
-  const plans = (S.config && S.config.plans) || [];
-  const current = $("pPlan").value;
-  $("pPlan").innerHTML = plans.map(p => `<option value="${esc(p.id)}">${esc(planText(p.id)[0])} ($${Math.round(p.price_usd)})</option>`).join("");
-  if (current) $("pPlan").value = current;
-}
-$("rTrigger").onchange = updateBuilder;
-$("rAction").onchange = updateBuilder;
-
-$("addRule").onclick = async () => {
-  const c = S.community; if (!c) return;
-  const act = $("rAction").value;
-  const payload = {};
-  if (act === "send_message") payload.text = $("pText").value.trim();
-  if (act === "kick") payload.reason = $("pText").value.trim();
-  if (act === "payment_wall"){ payload.plan_id = $("pPlan").value; if ($("pText").value.trim()) payload.text = $("pText").value.trim(); }
-  if (act === "add_role") payload.role = $("pRole").value.trim();
-  const body = {trigger_type:$("rTrigger").value, trigger_value:$("rValue").value.trim(), action_type:act, payload};
-  try{
-    const res = await api(`/api/v1/dashboard/communities/${c.chat_id}/rules`, {method:"POST", body});
-    c.rules.push(res.rule); renderRules();
-    $("rValue").value = ""; $("pText").value = ""; $("pRole").value = "";
-    toast(t("rule_added"));
-  }catch(e){ toast(t("err", {e:e.message}), true); }
-};
-
-/* ---------- Plantillas ---------- */
-function templateConfig(index){
-  const tx = (TEMPLATES[S.lang] || TEMPLATES.es)[index];
-  const welcome = tx[3];
-  if (index === 0) return {
-    settings:{welcome_enabled:true, welcome_message:welcome, captcha_enabled:true, captcha_timeout:120},
-    rules:[{trigger_type:"command", trigger_value:"vip", action_type:"payment_wall", payload:{plan_id:"paid_channels"}}]
-  };
-  if (index === 1) return {
-    settings:{welcome_enabled:true, welcome_message:welcome, captcha_enabled:true, captcha_timeout:90,
-      blacklist:["casino","airdrop","onlyfans","t.me/+","bit.ly","giveaway","free crypto"], blacklist_action:"delete_and_warn", auto_roles:["Nuevo"]},
-    rules:[]
-  };
-  return {
-    settings:{welcome_enabled:true, welcome_message:welcome},
-    rules:[
-      {trigger_type:"command", trigger_value:"catalogo", action_type:"send_message", payload:{text:tx[4]}},
-      {trigger_type:"keyword", trigger_value:S.lang === "en" ? "shipping" : S.lang === "de" ? "versand" : S.lang === "fr" ? "livraison" : S.lang === "it" ? "spedizion" : S.lang === "pt" ? "entrega" : "envío", action_type:"send_message", payload:{text:tx[5]}}
-    ]
-  };
-}
-
-function renderTemplates(){
-  const comms = S.info ? S.info.communities : [];
-  const sel = $("tplTarget");
-  const prev = sel.value;
-  sel.innerHTML = comms.map(c => `<option value="${c.chat_id}">${esc(c.title)}</option>`).join("");
-  if (prev) sel.value = prev;
-  sel.disabled = !comms.length;
-  const list = TEMPLATES[S.lang] || TEMPLATES.es;
-  $("tplList").innerHTML = (!comms.length ? `<p class="callout">${esc(t("tpl_need"))}</p>` : "") + list.map((tp, i) => `
-    <div class="tpl"><span class="ico">${tp[0]}</span><div><h3 style="font-size:1rem">${esc(tp[1])}</h3><p>${esc(tp[2])}</p>
-    <button class="btn" data-tpl="${i}" ${comms.length ? "" : "disabled"}>${esc(t("tpl_apply"))}</button></div></div>`).join("");
-  $("tplList").querySelectorAll("[data-tpl]").forEach(b => b.onclick = () => applyTemplate(Number(b.dataset.tpl), b));
-}
-
-async function applyTemplate(index, btn){
-  const chatId = Number($("tplTarget").value);
-  if (!chatId) return;
-  const cfg = templateConfig(index);
-  btn.disabled = true;
-  try{
-    await api(`/api/v1/dashboard/communities/${chatId}/settings`, {method:"POST", body:cfg.settings});
-    for (const rule of cfg.rules){
-      await api(`/api/v1/dashboard/communities/${chatId}/rules`, {method:"POST", body:rule});
-    }
-    toast(t("tpl_applied"));
-    await loadUser();
-  }catch(e){ toast(t("err", {e:e.message}), true); }
-  finally{ btn.disabled = false; }
-}
-
-$("openTemplates").onclick = () => { renderTemplates(); openModal("tplModal"); };
-
-/* ---------- Carga de datos ---------- */
-async function loadConfig(){
-  try{
-    S.config = await api("/api/v1/dashboard/public-config");
-    setStatus(S.config.bot_username ? (IN_TELEGRAM ? "online" : "preview") : "offline");
-  }catch(e){
-    S.config = {plans:[], gateways:{}, bot_username:null};
-    setStatus("offline");
-  }
-}
-
-async function loadUser(){
-  if (!IN_TELEGRAM) return;
-  try{
-    S.info = await api("/api/v1/dashboard/user-info");
-  }catch(e){
-    toast(e.status === 401 ? t("err_auth") : t("err", {e:e.message}), true);
-  }
-  renderHero(); renderCommunities();
-  if ($("tplModal").classList.contains("open")) renderTemplates();
-}
-
-function handleReturnParams(){
-  const params = new URLSearchParams(location.search);
-  const p = params.get("payment");
-  if (!p) return;
-  const map = {success:["pay_ok",false], pending:["pay_pending",false], failed:["pay_failed",true], cancelled:["pay_cancel",false]};
-  if (map[p]) toast(t(map[p][0]), map[p][1]);
-  history.replaceState(null, "", location.pathname);
-}
-
-$("langSelect").onchange = e => { S.lang = e.target.value; renderAll(); };
-
-async function init(){
-  if (tg){
-    tg.ready();
-    tg.expand();
-    try{ tg.setHeaderColor("#141c24"); tg.setBackgroundColor("#141c24"); }catch(e){}
-    if (tg.BackButton) tg.BackButton.onClick(closeTopModal);
-  }
-  const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
-  const code = ((tgUser && tgUser.language_code) || navigator.language || "es").slice(0, 2).toLowerCase();
-  S.lang = I18N[code] ? code : "es";
-  buildDial();
-  applyI18n();
-  setStatus("connecting");
-  $("previewNote").classList.toggle("hidden", IN_TELEGRAM);
-  await loadConfig();
-  if (IN_TELEGRAM){
-    try{
-      const info = await api("/api/v1/dashboard/user-info");
-      S.info = info;
-      if (info.user.language_code && I18N[info.user.language_code]) S.lang = info.user.language_code;
-    }catch(e){ toast(e.status === 401 ? t("err_auth") : t("err", {e:e.message}), true); }
-  }
-  renderAll();
-  handleReturnParams();
-}
-init();
-</script>
+<script type="module" src="js/app.js"></script>
 </body>
 </html>
