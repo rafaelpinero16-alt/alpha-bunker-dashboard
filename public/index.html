@@ -1,7 +1,6 @@
 <!DOCTYPE html>
-<!-- THE BUNKER — COMMAND OS v9.0 — Interfaz tipo constructor (estilo PuzzleBot): barra lateral por secciones,
-     tarjetas y filas de ajustes. Misma API, mismos IDs y misma sesión estricta por initData / token. -->
-<html lang="es" data-theme="light">
+<!-- THE BUNKER — COMMAND OS v9.5 — Landing Hero Cyberpunk Tron + Acceso Dual (Email + Telegram) + Suite Modular 1:1 -->
+<html lang="es" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -10,35 +9,271 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Estilos Landing Hero (Referencia Visual Cyberpunk Tron) */
+        .landing-hero {
+            width: 100%;
+            max-width: 860px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 40px 16px 30px;
+            position: relative;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 999px;
+            background: rgba(0, 243, 255, 0.08);
+            border: 1px solid rgba(0, 243, 255, 0.35);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #00f3ff;
+            margin-bottom: 20px;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.15);
+        }
+        .hero-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #00f3ff;
+            box-shadow: 0 0 8px #00f3ff;
+            animation: heroDotPulse 1.8s infinite;
+        }
+        @keyframes heroDotPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+        .hero-title {
+            font-size: clamp(32px, 6vw, 56px);
+            font-weight: 900;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            color: #ffffff;
+            margin-bottom: 16px;
+        }
+        .hero-gradient-text {
+            background: linear-gradient(135deg, #00f3ff 20%, #ff00ff 85%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 35px rgba(0, 243, 255, 0.3);
+        }
+        .hero-desc {
+            max-width: 620px;
+            margin: 0 auto 28px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #94a3b8;
+        }
+        .hero-actions {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 45px;
+        }
+        .pillars-section {
+            width: 100%;
+            max-width: 860px;
+            margin: 0 auto 40px;
+            text-align: center;
+        }
+        .section-tag {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .section-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 24px;
+        }
+        .pillars-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            text-align: left;
+        }
+        .pillar-card {
+            background: rgba(10, 14, 23, 0.85);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: 18px;
+            padding: 22px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(16px);
+            transition: all 0.2s ease;
+        }
+        .pillar-card:hover {
+            border-color: rgba(255, 0, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(255, 0, 255, 0.12);
+        }
+        .pillar-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            margin-bottom: 14px;
+            font-size: 16px;
+            background: rgba(0, 243, 255, 0.1);
+            color: #00f3ff;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+        }
+        .pillar-card:nth-child(2) .pillar-icon {
+            background: rgba(255, 0, 255, 0.1);
+            color: #ff00ff;
+            border-color: rgba(255, 0, 255, 0.3);
+        }
+        .pillar-head {
+            font-size: 16px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+        .pillar-sub {
+            font-size: 11px;
+            font-weight: 800;
+            color: #00f3ff;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 10px;
+        }
+        .pillar-card:nth-child(2) .pillar-sub {
+            color: #ff00ff;
+        }
+        .pillar-desc {
+            font-size: 12px;
+            line-height: 1.5;
+            color: #94a3b8;
+            margin-bottom: 14px;
+        }
+        .pillar-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: 8px;
+            font-size: 12px;
+            color: #cbd5e1;
+        }
+        .pillar-list li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .pillar-list li i {
+            color: #00f3ff;
+            font-size: 11px;
+        }
+        .pillar-card:nth-child(2) .pillar-list li i {
+            color: #ff00ff;
+        }
+    </style>
 </head>
 <body>
 
 <!-- ============================================================== -->
-<!-- ACCESO (se omite automáticamente dentro de Telegram)            -->
+<!-- ACCESO Y LANDING HERO (se oculta al detectar sesión)             -->
 <!-- ============================================================== -->
-<div id="login-gate" class="auth-screen hidden">
-    <div class="auth-card">
-        <div class="auth-logo">B</div>
-        <h1 data-i18n="login_title">Acceso a The Bunker OS</h1>
-        <p class="auth-sub" data-i18n="login_subtitle">Autentica tu identidad operativa para desbloquear el panel de comando.</p>
+<div id="login-gate" class="auth-screen">
+    <div class="landing-hero">
+        <div class="hero-badge">
+            <span class="hero-dot"></span> EL NEXO DEL ENTRETENIMIENTO DIGITAL
+        </div>
+        <h1 class="hero-title">
+            El Futuro de las <br><span class="hero-gradient-text">Comunidades Premium</span>
+        </h1>
+        <p class="hero-desc">
+            Potenciamos tu presencia digital. Desde la gestión y seguridad de entornos interactivos hasta la monetización automatizada con publicidad inteligente.
+        </p>
+        <div class="hero-actions">
+            <a href="#login-auth-box" class="btn btn-primary">
+                Explorar Ecosistema <i class="fa-solid fa-arrow-right"></i>
+            </a>
+            <button type="button" class="btn btn-secondary" onclick="app.loginViaBot()">
+                <i class="fa-solid fa-bolt"></i> Iniciar Proyecto
+            </button>
+        </div>
 
-        <!-- Widget oficial de Telegram (lo inyecta telegram.js) -->
-        <div id="telegram-login-widget-container"></div>
+        <!-- Pilares del Ecosistema -->
+        <div class="pillars-section">
+            <p class="section-tag">NUESTROS PILARES</p>
+            <h2 class="section-title">Ecosistema Dual Integrado</h2>
+            <div class="pillars-grid">
+                <div class="pillar-card">
+                    <div class="pillar-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                    <h3 class="pillar-head">Alpha PigBro's</h3>
+                    <p class="pillar-sub">ENTRETENIMIENTO & SEGURIDAD</p>
+                    <p class="pillar-desc">Construimos y blindamos espacios digitales. Diseñamos dinámicas de interacción premium y garantizamos un entorno seguro para creadores y comunidades de alto valor.</p>
+                    <ul class="pillar-list">
+                        <li><i class="fa-solid fa-check"></i> Moderación avanzada y filtrado de contenido.</li>
+                        <li><i class="fa-solid fa-check"></i> Eventos interactivos y gamificación de usuarios.</li>
+                        <li><i class="fa-solid fa-check"></i> Gestión integral de Telegram y plataformas sociales.</li>
+                    </ul>
+                </div>
+                <div class="pillar-card">
+                    <div class="pillar-icon"><i class="fa-solid fa-chart-line"></i></div>
+                    <h3 class="pillar-head">Alpha AdMosphere</h3>
+                    <p class="pillar-sub">RED DE ANUNCIOS & MONETIZACIÓN</p>
+                    <p class="pillar-desc">El motor de ingresos de tu comunidad. Integramos pautas publicitarias no intrusivas y sistemas de monetización automatizados para transformar tu audiencia en capital.</p>
+                    <ul class="pillar-list">
+                        <li><i class="fa-solid fa-check"></i> Integración de anunciantes relevantes y nativos.</li>
+                        <li><i class="fa-solid fa-check"></i> Flujos de monetización automatizados (Suscripciones VIP).</li>
+                        <li><i class="fa-solid fa-check"></i> Analíticas en tiempo real de conversión y engagement.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
 
-        <div class="auth-divider"><span data-i18n="login_or">o</span></div>
+        <!-- Caja de Autenticación Dual (Email + Telegram) -->
+        <div id="login-auth-box" class="auth-card" style="margin: 0 auto;">
+            <div class="auth-logo">B</div>
+            <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 6px;" data-i18n="login_title">Acceso a The Bunker OS</h2>
+            <p class="auth-sub" data-i18n="login_subtitle">Autentica tu identidad operativa para desbloquear el panel de comando.</p>
 
-        <button type="button" class="btn btn-telegram btn-block" onclick="app.loginViaBot()">
-            <i class="fa-brands fa-telegram"></i> <span data-i18n="login_via_bot">Iniciar sesión vía Bot</span>
-        </button>
-        <p id="login-status-msg" class="auth-status" data-i18n="login_hint">Se abrirá una ventana segura de Telegram para verificar tu identidad. No se solicitan contraseñas.</p>
+            <!-- Acceso con Correo Electrónico -->
+            <form onsubmit="event.preventDefault(); alert('Para ingresar sin credenciales externas, utiliza el widget oficial de Telegram o el botón del Bot.');" style="display: grid; gap: 10px; text-align: left; margin-bottom: 14px;">
+                <div class="field">
+                    <label class="label" for="login-email" style="font-size: 11px;">Correo Electrónico:</label>
+                    <input type="email" id="login-email" class="input" placeholder="operador@alphabunker.com" autocomplete="email">
+                </div>
+                <div class="field">
+                    <label class="label" for="login-password" style="font-size: 11px;">Contraseña:</label>
+                    <input type="password" id="login-password" class="input" placeholder="••••••••••••" autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" style="margin-top: 4px;">
+                    <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión con Correo
+                </button>
+            </form>
+
+            <div class="auth-divider"><span data-i18n="login_or">o</span></div>
+
+            <!-- Widget oficial de Telegram (lo inyecta telegram.js) -->
+            <div id="telegram-login-widget-container"></div>
+
+            <button type="button" class="btn btn-telegram btn-block" onclick="app.loginViaBot()" style="margin-top: 10px;">
+                <i class="fa-brands fa-telegram"></i> <span data-i18n="login_via_bot">Iniciar sesión vía Bot</span>
+            </button>
+            <p id="login-status-msg" class="auth-status" data-i18n="login_hint">Se abrirá una ventana segura de Telegram para verificar tu identidad. No se solicitan contraseñas.</p>
+        </div>
     </div>
 </div>
 
 <!-- ============================================================== -->
-<!-- APLICACIÓN                                                      -->
+<!-- APLICACIÓN PRINCIPAL (COMMAND OS)                               -->
 <!-- ============================================================== -->
 <div id="app-shell" class="layout hidden">
 
@@ -170,9 +405,7 @@
 
         <main id="tab-container" class="content">
 
-            <!-- ====================================================== -->
-            <!-- TELEMETRÍA                                             -->
-            <!-- ====================================================== -->
+            <!-- TELEMETRÍA -->
             <section id="view-dashboard" class="tab-view stack">
                 <div class="page-head">
                     <div>
@@ -259,9 +492,7 @@
                 <p class="footer-note" data-i18n="footer_copyright">The Bunker Command OS © 2026 — Cloud Media Management</p>
             </section>
 
-            <!-- ====================================================== -->
-            <!-- ANALÍTICA EN VIVO                                      -->
-            <!-- ====================================================== -->
+            <!-- ANALÍTICA EN VIVO -->
             <section id="view-analytics" class="tab-view stack hidden">
                 <div class="page-head">
                     <div>
@@ -426,9 +657,7 @@
                 </div>
             </section>
 
-            <!-- ====================================================== -->
-            <!-- ESTUDIO DE CANALES                                     -->
-            <!-- ====================================================== -->
+            <!-- ESTUDIO DE CANALES -->
             <section id="view-channels" class="tab-view stack hidden">
                 <div class="page-head">
                     <div>
@@ -461,7 +690,7 @@
                     </div>
                 </div>
 
-                <!-- Generador de planes (crea registros reales en channel_plans) -->
+                <!-- Generador de planes -->
                 <div id="plan-form-panel" class="card">
                     <div class="card-head">
                         <div>
@@ -584,9 +813,7 @@
                 </div>
             </section>
 
-            <!-- ====================================================== -->
-            <!-- MATRIZ DE GRUPOS                                       -->
-            <!-- ====================================================== -->
+            <!-- MATRIZ DE GRUPOS -->
             <section id="view-groups" class="tab-view stack hidden">
                 <div class="page-head">
                     <div>
@@ -656,9 +883,7 @@
                 </div>
             </section>
 
-            <!-- ====================================================== -->
-            <!-- AJUSTES DEL BOT · CONSOLA DE PROGRAMACIÓN 1:1          -->
-            <!-- ====================================================== -->
+            <!-- AJUSTES DEL BOT · CONSOLA 1:1 -->
             <section id="view-bot-settings" class="tab-view stack hidden">
                 <div class="page-head">
                     <div>
@@ -693,7 +918,6 @@
                         <span id="cfg-console-state" class="cfg-status" data-i18n="cfg_pick">Selecciona una comunidad para programar el bot.</span>
                     </div>
                     <div class="card-body">
-
                         <!-- Aduana & Bienvenida -->
                         <details id="cfg-section-aduana" class="module" data-section="aduana" open>
                             <summary>
@@ -941,9 +1165,7 @@
                 </div>
             </section>
 
-            <!-- ====================================================== -->
-            <!-- AUDITOR DE SUSCRIPCIONES                               -->
-            <!-- ====================================================== -->
+            <!-- AUDITOR DE SUSCRIPCIONES -->
             <section id="view-watchdog" class="tab-view stack hidden">
                 <div class="page-head">
                     <div>
@@ -956,9 +1178,7 @@
                 <div id="watchdog-list" class="list"></div>
             </section>
 
-            <!-- ====================================================== -->
-            <!-- MEMBRESÍAS DE LA PLATAFORMA (solo Telegram Stars)      -->
-            <!-- ====================================================== -->
+            <!-- MEMBRESÍAS -->
             <section id="view-plans" class="tab-view stack hidden">
                 <div class="page-head">
                     <div>
@@ -1000,9 +1220,7 @@
                 </div>
             </section>
 
-            <!-- ====================================================== -->
-            <!-- AFILIADOS                                              -->
-            <!-- ====================================================== -->
+            <!-- AFILIADOS -->
             <section id="view-affiliates" class="tab-view stack hidden">
                 <div class="page-head">
                     <div>
@@ -1023,9 +1241,7 @@
                 </div>
             </section>
 
-            <!-- ====================================================== -->
-            <!-- PERFIL                                                 -->
-            <!-- ====================================================== -->
+            <!-- PERFIL -->
             <section id="view-profile" class="tab-view stack hidden">
                 <div class="card">
                     <div class="profile-hero">
