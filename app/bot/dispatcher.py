@@ -1,9 +1,9 @@
 """Inicialización del Bot y del Dispatcher de aiogram 3."""
 from __future__ import annotations
 
-from aiogram import Bot, Dispatcher
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
+from aiogram import Bot, Dispatcher  # type: ignore[import-not-found]
+from aiogram.client.default import DefaultBotProperties  # type: ignore[import-not-found]
+from aiogram.enums import ParseMode  # type: ignore[import-not-found]
 
 from app.bot import handlers
 from app.config import settings

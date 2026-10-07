@@ -6,11 +6,17 @@ import logging
 from html import escape
 from typing import Any, Coroutine, Dict, Optional, Set, Tuple
 
-from aiogram import Bot, F, Router
-from aiogram.enums import ChatMemberStatus, ChatType
-from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
-from aiogram.filters import JOIN_TRANSITION, ChatMemberUpdatedFilter, Command, CommandObject, CommandStart
-from aiogram.types import (
+from aiogram import Bot, F, Router  # type: ignore[import-not-found]
+try:
+    from aiogram.enums import ChatMemberStatus, ChatType  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover - compatibility with aiogram 2.x
+    from aiogram.types import ChatMemberStatus, ChatType  # type: ignore[import-not-found]
+try:
+    from aiogram.exceptions import TelegramAPIError, TelegramBadRequest  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover - compatibility with aiogram 2.x
+    from aiogram.utils.exceptions import TelegramAPIError, TelegramBadRequest  # type: ignore[import-not-found]
+from aiogram.filters import JOIN_TRANSITION, ChatMemberUpdatedFilter, Command, CommandObject, CommandStart  # type: ignore[import-not-found]
+from aiogram.types import (  # type: ignore[import-not-found]
     CallbackQuery,
     Chat,
     ChatMemberUpdated,
@@ -19,7 +25,7 @@ from aiogram.types import (
     Message,
     PreCheckoutQuery,
 )
-from aiogram.types import User as TgUser
+from aiogram.types import User as TgUser  # type: ignore[import-not-found]
 
 from app.bot.keyboards import (
     CaptchaCallback,

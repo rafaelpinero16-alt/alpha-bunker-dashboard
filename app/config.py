@@ -5,8 +5,8 @@ import re
 from typing import Any, List, Literal, Optional
 from urllib.parse import urlparse
 
-from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator  # type: ignore[import-not-found]
+from pydantic_settings import BaseSettings, SettingsConfigDict  # type: ignore[import-not-found]
 
 _SECRET_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,256}$")
 

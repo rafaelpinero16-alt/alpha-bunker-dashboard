@@ -9,7 +9,7 @@ import time
 from typing import Any, Dict, Optional
 from urllib.parse import parse_qsl
 
-from fastapi import Header, HTTPException, status
+from fastapi import Header, HTTPException, status  # type: ignore[import-not-found]
 
 from app.config import settings
 from app.services.database import db

@@ -17,7 +17,30 @@ from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+try:
+    from pydantic import BaseModel, Field  # type: ignore[import-not-found]
+    PYDANTIC_V2 = True
+except ImportError:  # pragma: no cover - compatibilidad con pydantic v1
+    from pydantic.v1 import BaseModel, Field  # type: ignore[import-not-found]
+    PYDANTIC_V2 = False
+
+if not PYDANTIC_V2:
+    def _model_validate(cls, obj: Any) -> BaseModel:
+        return cls.parse_obj(obj)
+
+    def _model_copy(self, *, deep: bool = False, update: Optional[Dict[str, Any]] = None) -> BaseModel:
+        if update is None:
+            return self.copy(deep=deep)
+        return self.copy(update=update, deep=deep)
+
+    def _model_dump(self, *, mode: str = "python", **kwargs: Any) -> Dict[str, Any]:
+        if mode == "json":
+            return json.loads(self.json())
+        return self.dict(**kwargs)
+
+    BaseModel.model_validate = classmethod(_model_validate)
+    BaseModel.model_copy = _model_copy
+    BaseModel.model_dump = _model_dump
 
 from app.config import settings
 

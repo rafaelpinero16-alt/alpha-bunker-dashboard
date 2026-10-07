@@ -14,14 +14,40 @@ import secrets
 import time
 from datetime import datetime, timedelta, timezone
 from html import escape
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, Tuple
 from uuid import uuid4
 
-import httpx
-from aiogram import Bot
-from aiogram.exceptions import TelegramAPIError
-from aiogram.types import LabeledPrice
-from pydantic import BaseModel
+import httpx  # type: ignore[reportMissingImports]
+
+if TYPE_CHECKING:
+    from aiogram import Bot  # type: ignore[reportMissingImports]
+    from aiogram.exceptions import TelegramAPIError  # type: ignore[reportMissingImports]
+    from aiogram.types import LabeledPrice  # type: ignore[reportMissingImports]
+else:
+    try:
+        from aiogram import Bot  # type: ignore[import-not-found]
+        from aiogram.exceptions import TelegramAPIError  # type: ignore[import-not-found]
+        from aiogram.types import LabeledPrice  # type: ignore[import-not-found]
+    except ImportError:  # pragma: no cover - optional dependency in local/dev envs
+        class Bot:  # type: ignore[override]
+            def __getattr__(self, name: str) -> Any:
+                raise ImportError("aiogram is not installed")
+
+        class TelegramAPIError(Exception):
+            pass
+
+        class LabeledPrice:
+            def __init__(self, label: str, amount: int) -> None:
+                self.label = label
+                self.amount = amount
+
+try:
+    from pydantic import BaseModel  # type: ignore[reportMissingImports]
+except ImportError:  # pragma: no cover - optional dependency in local/dev envs
+    class BaseModel:  # type: ignore[override]
+        def __init__(self, **data: Any) -> None:
+            for key, value in data.items():
+                setattr(self, key, value)
 
 from app.config import settings
 from app.services.database import GatewayName, Transaction, db

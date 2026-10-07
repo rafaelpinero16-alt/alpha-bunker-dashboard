@@ -6,10 +6,14 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncIterator, Dict
 
-from aiogram.exceptions import TelegramAPIError
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+try:
+    from aiogram.exceptions import TelegramAPIError  # type: ignore[reportMissingImports]
+except ImportError:  # Compatibilidad con aiogram 2.x
+    from aiogram.utils.exceptions import TelegramAPIError  # type: ignore[reportMissingImports]
+
+from fastapi import FastAPI  # type: ignore[reportMissingImports]
+from fastapi.middleware.cors import CORSMiddleware  # type: ignore[reportMissingImports]
+from fastapi.staticfiles import StaticFiles  # type: ignore[reportMissingImports]
 
 from app.api import dashboard, webhooks
 from app.bot.dispatcher import bot, dp
@@ -97,6 +101,6 @@ app.mount("/", StaticFiles(directory=str(PUBLIC_DIR), html=True), name="public")
 
 
 if __name__ == "__main__":
-    import uvicorn
+    import uvicorn  # type: ignore[reportMissingImports]
 
     uvicorn.run("app.main:app", host=settings.SERVER_HOST, port=settings.SERVER_PORT, proxy_headers=True)

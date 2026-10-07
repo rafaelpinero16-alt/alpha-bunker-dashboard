@@ -3,9 +3,13 @@ from __future__ import annotations
 
 from typing import Dict
 
-from aiogram.filters.callback_data import CallbackData
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.filters.callback_data import CallbackData  # pyright: ignore[reportMissingImports]
+from aiogram.types import (  # pyright: ignore[reportMissingImports]
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    WebAppInfo,
+)
+from aiogram.utils.keyboard import InlineKeyboardBuilder  # pyright: ignore[reportMissingImports]
 
 from app.services.payments import sorted_plans
 
