@@ -14,10 +14,18 @@ import logging
 import time
 from typing import Any, Dict, List, Literal, Optional
 
-from aiogram.enums import ChatMemberStatus
-from aiogram.exceptions import TelegramAPIError
-from fastapi import APIRouter, Depends, Header, HTTPException, status
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+try:
+    from aiogram.enums import ChatMemberStatus  # type: ignore[reportMissingImports]
+except ImportError:  # pragma: no cover - compatibilidad con aiogram 2.x
+    from aiogram.types import ChatMemberStatus  # type: ignore[reportMissingImports]
+
+try:
+    from aiogram.exceptions import TelegramAPIError  # type: ignore[reportMissingImports]
+except ImportError:  # pragma: no cover - compatibilidad con aiogram 2.x
+    from aiogram.utils.exceptions import TelegramAPIError  # type: ignore[reportMissingImports]
+
+from fastapi import APIRouter, Depends, Header, HTTPException, status  # type: ignore[reportMissingImports]
+from pydantic import BaseModel, ConfigDict, Field, model_validator  # type: ignore[reportMissingImports]
 
 from app.auth import get_current_telegram_user
 from app.bot.dispatcher import bot
