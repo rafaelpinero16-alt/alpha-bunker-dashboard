@@ -3,19 +3,20 @@
  * Nada de aquí es secreto: todo lo sensible vive en el backend.
  */
 window.ALPHA_CONFIG = Object.freeze({
-  // Backend REST (Railway). Todas las rutas usadas cuelgan de /v2.
-  apiBaseUrl: 'https://alpha-bunker-backend-production.up.railway.app',
+  // Backend REST (Render · FastAPI). Todas las rutas usadas cuelgan de /v2.
+  apiBaseUrl: 'https://alpha-bunker-backend.onrender.com',
 
-  // WebSockets (mismo servicio de Railway, protocolo seguro wss://).
+  // WebSockets (mismo servicio de Render, protocolo seguro wss://).
   // Rutas: /v2/chat/dm · /v2/chat/rooms/{sala}/text · /v2/video/rooms/{sala}/signal
-  wsBaseUrl: 'wss://alpha-bunker-backend-production.up.railway.app',
+  wsBaseUrl: 'wss://alpha-bunker-backend.onrender.com',
 
   // Bot y Mini App (BotFather → /newapp). Enlace de la Mini App: t.me/<bot>/<shortName>
   botUsername: 'Alpha_store_botbot',
   miniAppShortName: 'app',
 
   // TonConnect: el manifest debe ser público, HTTPS y con CORS abierto.
-  tonManifestUrl: 'https://alpha-bunker-backend-production.up.railway.app/tonconnect-manifest.json',
+  // El backend de Render debe servir este archivo en la raíz (GET /tonconnect-manifest.json).
+  tonManifestUrl: 'https://alpha-bunker-backend.onrender.com/tonconnect-manifest.json',
 
   // Esquema de deep link del APK (AndroidManifest.xml → intent-filter "alphabunker").
   appScheme: 'alphabunker',
