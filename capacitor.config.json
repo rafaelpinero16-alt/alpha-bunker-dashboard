@@ -6,18 +6,11 @@
   "server": {
     "androidScheme": "https",
     "iosScheme": "https",
-    "hostname": "localhost",
-    "allowNavigation": [
-      "alpha-bunker-backend-production.up.railway.app",
-      "t.me",
-      "telegram.org",
-      "*.telegram.org"
-    ]
+    "hostname": "localhost"
   },
   "android": {
     "allowMixedContent": false,
     "captureInput": true,
-    "webContentsDebuggingEnabled": false,
     "backgroundColor": "#050505"
   },
   "ios": {
@@ -27,8 +20,10 @@
   },
   "plugins": {
     "SplashScreen": {
-      "launchShowDuration": 0,
-      "backgroundColor": "#050505"
+      "launchShowDuration": 600,
+      "launchAutoHide": true,
+      "backgroundColor": "#050505",
+      "showSpinner": false
     },
     "Keyboard": {
       "resize": "body",

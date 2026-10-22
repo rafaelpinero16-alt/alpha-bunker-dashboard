@@ -9,6 +9,7 @@
  *    email con timeouts y errores, login con Telegram vía bot (deep link, cancelar,
  *    degradación), enlaces nativos y botón atrás.
  * C) APK sin red con sesión guardada: pantalla offline con reintento (sin bucle de recarga).
+ * D) WebSocket caído: tope de 10 reintentos, pausa y reanudación con el evento 'online'.
  * Cada escenario corre en un contexto vm aislado con su propio DOM simulado.
  */
 'use strict';
@@ -17,7 +18,7 @@ const vm = require('vm');
 const path = require('path');
 
 const ROOT = process.argv[2] ? path.resolve(process.argv[2]) : __dirname;
-const API = 'https://alpha-bunker-backend-production.up.railway.app';
+const API = 'https://alpha-bunker-backend.onrender.com';
 const LANGS = ['es', 'en', 'it', 'pt', 'de', 'fr'];
 const results = [];
 function ok(cond, msg) { results.push((cond ? 'PASS ' : 'FAIL ') + msg); if (!cond) process.exitCode = 1; }
@@ -34,19 +35,23 @@ ok(!seq.some((s) => /\b(defer|async)\b/.test(s.tag)), 'index.html: scripts v2 si
 ok(!srcs.some((s) => /js\/(api|chat|security)\.js$/.test(s.src)), 'index.html: sin <script> de api.js / chat.js / security.js legacy');
 ok(/viewport-fit=cover/.test(html), 'index.html: viewport-fit=cover');
 const csp = (html.match(/Content-Security-Policy" content="([^"]+)"/) || [])[1] || '';
-ok(/connect-src[^;]*https:\/\/alpha-bunker-backend-production\.up\.railway\.app/.test(csp) && /connect-src[^;]*wss:\/\/alpha-bunker-backend-production\.up\.railway\.app/.test(csp), 'CSP: Railway HTTPS + WSS en connect-src');
+ok(!/railway/i.test(html) && /connect-src[^;]*https:\/\/alpha-bunker-backend\.onrender\.com/.test(csp) && /connect-src[^;]*wss:\/\/alpha-bunker-backend\.onrender\.com/.test(csp), 'CSP: Render HTTPS + WSS en connect-src');
 ok(/connect-src[^;]*tonapi\.io/.test(csp) && /script-src[^;]*unpkg\.com/.test(csp) && /script-src[^;]*telegram\.org/.test(csp), 'CSP: TON Connect y Telegram permitidos');
 ['login-email', 'login-password', 'reg-name-input', 'reg-email-input', 'reg-password-input', 'btn-login-telegram', 'admin-price', 'feed-container', 'floating-video-bunker']
   .forEach((id) => ok(html.includes('id="' + id + '"'), 'index.html contiene #' + id));
 const i18nKeys = [...new Set([...html.matchAll(/data-i18n(?:-placeholder|-aria|-title)?="([^"]+)"/g)].map((m) => m[1]))];
 ok(i18nKeys.length >= 50, 'index.html: ' + i18nKeys.length + ' claves data-i18n (antes: 0)');
+const cfgSrc = fs.readFileSync(path.join(ROOT, 'js', 'config.js'), 'utf8');
+ok(/apiBaseUrl:\s*'https:\/\/alpha-bunker-backend\.onrender\.com'/.test(cfgSrc) && /wsBaseUrl:\s*'wss:\/\/alpha-bunker-backend\.onrender\.com'/.test(cfgSrc) && /tonManifestUrl:\s*'https:\/\/alpha-bunker-backend\.onrender\.com\//.test(cfgSrc), 'config.js: apiBaseUrl / wsBaseUrl / tonManifestUrl apuntan a Render');
+['js/api.js', 'js/chat.js', 'js/security.js', '_redirects'].forEach((f) => ok(!fs.existsSync(path.join(ROOT, f)), 'proyecto sin archivo legacy ' + f));
+ok(fs.existsSync(path.join(ROOT, 'vercel.json')), 'vercel.json presente (sustituye a _redirects, que Vercel ignora)');
 const capCfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'capacitor.config.json'), 'utf8'));
 ok(!(capCfg.server && capCfg.server.allowNavigation || []).some((h) => /t\.me|telegram/.test(h)), 'capacitor.config.json: t.me/telegram fuera de allowNavigation (no se abren dentro de la WebView)');
 
 // ====================================================================== entorno simulado
 function createEnv(opts) {
-  const o = Object.assign({ telegram: 'tma', capacitor: false, timeoutMs: null, fetch: null, prefs: {} }, opts || {});
-  const env = { byId: new Map(), all: [], docListeners: {}, winListeners: {}, net: [], tgCalls: [], sockets: [], native: [], reloads: 0, capListeners: {}, prefs: Object.assign({}, o.prefs) };
+  const o = Object.assign({ telegram: 'tma', capacitor: false, timeoutMs: null, fetch: null, prefs: {}, wsFail: false, fastTimers: false, three: false }, opts || {});
+  const env = { byId: new Map(), all: [], docListeners: {}, winListeners: {}, net: [], tgCalls: [], sockets: [], native: [], reloads: 0, capListeners: {}, prefs: Object.assign({}, o.prefs), gl: { renderers: 0, disposed: 0, contextLost: 0, frames: 0 } };
 
   class ClassList {
     constructor() { this.s = new Set(); }
@@ -175,7 +180,11 @@ function createEnv(opts) {
 
   // ---------------- WebSocket
   class WS {
-    constructor(u) { this.url = u; this.readyState = 0; this.sent = []; env.sockets.push(this); setTimeout(() => { this.readyState = 1; if (this.onopen) this.onopen(); }, 1); }
+    constructor(u) {
+      this.url = u; this.readyState = 0; this.sent = []; env.sockets.push(this);
+      if (o.wsFail) setTimeout(() => { this.readyState = 3; if (this.onclose) this.onclose({ code: 1006, reason: '' }); }, 1);
+      else setTimeout(() => { this.readyState = 1; if (this.onopen) this.onopen(); }, 1);
+    }
     send(d) { this.sent.push(JSON.parse(d)); } close() { this.readyState = 3; }
   }
   WS.OPEN = 1; WS.CONNECTING = 0;
@@ -202,6 +211,18 @@ function createEnv(opts) {
     setTimeout, clearTimeout, setInterval: () => 0, clearInterval() {}, console, Promise, URL, URLSearchParams, Blob, atob,
     Option: class { constructor(t, v) { this.text = t; this.value = v; } }, MediaStream: class {},
   };
+  if (o.fastTimers) win.setTimeout = (f, ms) => setTimeout(f, Math.min(ms || 0, 5));
+  if (o.three) {
+    const disposable = () => ({ dispose() { env.gl.disposed++; } });
+    win.THREE = {
+      WebGLRenderer: class { constructor() { env.gl.renderers++; } setSize() {} setPixelRatio() {} render() { env.gl.frames++; } dispose() { env.gl.disposed++; } forceContextLoss() { env.gl.contextLost++; } },
+      Scene: class { add() {} }, PerspectiveCamera: class { constructor() { this.position = {}; } },
+      IcosahedronGeometry: function () { return disposable(); }, MeshBasicMaterial: function () { return disposable(); },
+      BufferGeometry: function () { return Object.assign(disposable(), { setAttribute() {} }); }, BufferAttribute: class {},
+      PointsMaterial: function () { return disposable(); },
+      Mesh: class { constructor() { this.rotation = { x: 0, y: 0 }; } }, Points: class { constructor() { this.rotation = { y: 0 }; } },
+    };
+  }
   if (o.telegram !== 'absent') win.Telegram = { WebApp: TG };
   if (Capacitor) win.Capacitor = Capacitor;
   win.window = win; win.self = win; win.globalThis = win;
@@ -236,7 +257,7 @@ async function scenarioTMA() {
   const L = 'TMA';
   let level = 0, orderPolls = 0;
   const env = createEnv({
-    telegram: 'tma',
+    telegram: 'tma', three: true,
     fetch: (p, init, e) => {
       if (p === '/v2/auth/telegram') return e.json(200, { access_token: 'AT', access_expires_at: Math.floor(Date.now() / 1000) + 3600 });
       if (p === '/v2/auth/login') return e.json(200, { access_token: 'AT2', access_expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: 'RT' });
@@ -257,6 +278,11 @@ async function scenarioTMA() {
   const W = env.win, app = W.app;
   await env.boot();
 
+  ok(env.gl.renderers === 1 && env.gl.frames > 0, L + ': splash 3D crea un único WebGLRenderer y anima');
+  await sleep(500);
+  ok(env.gl.contextLost === 1 && env.gl.disposed >= 5, L + ': al ocultar el splash se liberan geometrías, materiales y el contexto WebGL');
+  const framesAfter = env.gl.frames; await sleep(120);
+  ok(env.gl.frames === framesAfter, L + ': sin bucle requestAnimationFrame tras ocultar el splash');
   ok(app.userId === '42', L + ': identidad tomada del servidor (userId=42) — sin IDs 99xxxxxx');
   ok(env.visible('view-feed'), L + ': enruta al feed tras AppBridge.init');
   ok(env.net.some((l) => l.startsWith('POST /v2/auth/telegram')), L + ': se autentica con initData firmado');
@@ -285,7 +311,7 @@ async function scenarioTMA() {
   await sleep(20);
   const textSock = env.sockets.find((s) => s.url.includes('/rooms/slam/text'));
   const sigSock = env.sockets.find((s) => s.url.includes('/video/rooms/slam/signal'));
-  ok(textSock && textSock.url.startsWith('wss://alpha-bunker-backend-production.up.railway.app/v2/chat/rooms/slam/text?ticket='), L + ': WebSocket usa wsBaseUrl de config.js + ticket de un solo uso');
+  ok(textSock && textSock.url.startsWith('wss://alpha-bunker-backend.onrender.com/v2/chat/rooms/slam/text?ticket='), L + ': WebSocket usa wsBaseUrl de config.js + ticket de un solo uso');
   ok(textSock && textSock.sent.some((m) => m.type === 'chat' && m.text === 'hola'), L + ': texto llega al socket de sala como chat');
   ok(textSock && !textSock.sent.some((m) => String(m.text || '').includes('webrtc_offer')), L + ': oferta WebRTC no se publica como mensaje de chat');
   ok(sigSock && sigSock.sent.some((m) => m.type === 'webrtc_offer' && !('room_id' in m)), L + ': oferta enrutada al socket de señalización sin room_id del cliente');
@@ -303,6 +329,9 @@ async function scenarioTMA() {
   ok(env.byId.get('nav-catalog').textContent === 'KATALOG' && env.byId.get('fab-lang-text').textContent === 'DE', L + ': idioma en caliente también dentro de Telegram');
   app.setLanguage('es');
 
+  (env.winListeners.blur || []).forEach((f) => f({}));
+  await sleep(20);
+  ok(!env.win.document.body.classList.contains('privacy-blur'), L + ': abrir openInvoice/TonConnect (window blur) ya no deja la pantalla negra');
   const sb = env.byId.get('sidebar-name');
   app.updateProfileUI();
   ok(sb && sb.textContent === 'Tester', L + ': cabecera del menú lateral muestra el alias del servidor');
@@ -456,11 +485,41 @@ async function scenarioOffline() {
   ok(env.prefs.alpha_v2_refresh === 'RT-OLD', L + ': un fallo de red no borra la sesión guardada');
 }
 
+// ====================================================================== D) WebSocket caído: tope de reintentos
+async function scenarioReconnect() {
+  const L = 'WS-reintentos';
+  const env = createEnv({
+    telegram: 'tma', wsFail: true, fastTimers: true,
+    fetch: (p, init, e) => {
+      if (p === '/v2/auth/telegram') return e.json(200, { access_token: 'AT', access_expires_at: Math.floor(Date.now() / 1000) + 3600 });
+      if (p === '/v2/auth/me') return e.json(200, { id: 42, display_name: 'Tester', role: 'fan', access_level: 1, age_confirmed: true });
+      if (p === '/v2/auth/ws-ticket') return e.json(200, { ticket: 'tk' });
+      if (p === '/v2/wallet/me') return e.json(200, { alpha_balance: 0 });
+      if (p.startsWith('/v2/posts/feed')) return e.json(200, { posts: [] });
+      return null;
+    },
+  });
+  env.load(L);
+  const W = env.win;
+  await env.boot();
+  const dmCount = () => env.sockets.filter((s) => s.url.includes('/v2/chat/dm')).length;
+  await sleep(400);
+  ok(W.BunkerChat.maxReconnectAttempts === 10, L + ': maxReconnectAttempts = 10');
+  ok(dmCount() === 11, L + ': 1 conexión + 10 reintentos y se detiene (' + dmCount() + ' intentos)');
+  ok(W.BunkerChat.dm.isPaused(), L + ': socket en pausa, sin bucle infinito');
+  await sleep(200);
+  ok(dmCount() === 11, L + ': no hay más intentos mientras está en pausa');
+  (env.winListeners.online || []).forEach((f) => f({}));
+  await sleep(50);
+  ok(dmCount() > 11, L + ': evento "online" del navegador reanuda la conexión');
+}
+
 // ====================================================================== ejecución
 (async () => {
   try { await scenarioTMA(); } catch (e) { ok(false, 'TMA: excepción no controlada → ' + (e && e.stack || e)); }
   try { await scenarioAPK(); } catch (e) { ok(false, 'APK: excepción no controlada → ' + (e && e.stack || e)); }
   try { await scenarioOffline(); } catch (e) { ok(false, 'APK-offline: excepción no controlada → ' + (e && e.stack || e)); }
+  try { await scenarioReconnect(); } catch (e) { ok(false, 'WS-reintentos: excepción no controlada → ' + (e && e.stack || e)); }
   const pass = results.filter((r) => r.startsWith('PASS')).length;
   const fail = results.filter((r) => r.startsWith('FAIL')).length;
   console.log(results.join('\n'));
