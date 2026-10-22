@@ -1,0 +1,38 @@
+{
+  "appId": "com.alphabunker.app",
+  "appName": "Alpha Bunker",
+  "webDir": "www",
+  "loggingBehavior": "debug",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https",
+    "hostname": "localhost",
+    "allowNavigation": [
+      "alpha-bunker-backend-production.up.railway.app",
+      "t.me",
+      "telegram.org",
+      "*.telegram.org"
+    ]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false,
+    "backgroundColor": "#050505"
+  },
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#050505",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "backgroundColor": "#050505"
+    },
+    "Keyboard": {
+      "resize": "body",
+      "resizeOnFullScreen": true
+    }
+  }
+}

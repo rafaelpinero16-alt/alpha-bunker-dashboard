@@ -1,0 +1,454 @@
+:root {
+    --neon-cyan: #00f3ff;
+    --neon-magenta: #ff00ff;
+    --neon-gold: #ffb703;
+    --neon-red: #ff3333;
+    --neon-green: #00ff66;
+    --bg-deep: #050505;
+}
+
+html {
+    background-color: #000;
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    background-color: var(--bg-deep);
+    color: #fff;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.15rem;
+    overflow-x: hidden;
+    
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    position: relative;
+    box-shadow: 0 0 25px rgba(0, 243, 255, 0.1);
+
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 🚀 SOPORTE DE ACELERACIÓN HARDWARE 3D / 60 FPS */
+.gpu-accelerated {
+    transform: translate3d(0, 0, 0);
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+}
+
+/* 📱 ESTILOS PARA EL MENÚ LATERAL DESLIZABLE (SIDEBAR DRAWER ESTILO TELEGRAM) */
+#telegram-sidebar {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#telegram-sidebar.sidebar-open {
+    transform: translateX(0) !important;
+}
+#sidebar-backdrop.backdrop-open {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+/* ☀️ MODO CLARO COMPLETO Y CONTRASTADO */
+body.light-theme {
+    --bg-deep: #f1f5f9;
+    background-color: var(--bg-deep);
+    color: #0f172a;
+}
+body.light-theme .glass-panel {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(0, 243, 255, 0.4);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    color: #0f172a;
+}
+body.light-theme .cyber-input {
+    background: rgba(255, 255, 255, 0.9);
+    color: #0f172a;
+    border-color: rgba(0, 180, 216, 0.6);
+}
+body.light-theme .cyber-input::placeholder {
+    color: #64748b;
+}
+body.light-theme .tron-grid {
+    opacity: 0.12;
+    filter: invert(1);
+}
+body.light-theme .grid-fade {
+    background: radial-gradient(circle at center 30%, transparent 0%, #f1f5f9 70%);
+}
+body.light-theme .text-white {
+    color: #0f172a !important;
+}
+body.light-theme .text-gray-200,
+body.light-theme .text-gray-300,
+body.light-theme .text-neutral-300 {
+    color: #334155 !important;
+}
+
+/* 🟢 PUNTO VERDE NEÓN ACTIVO (ONLINE) */
+.neon-green-dot {
+    background-color: var(--neon-green) !important;
+    box-shadow: 0 0 8px var(--neon-green), 0 0 16px var(--neon-green), 0 0 24px rgba(0, 255, 102, 0.8) !important;
+}
+
+/* 📡 RADAR LATERAL DERECHO (CHAT & VIDEO BÚNKER) */
+#radar-lateral-bunker {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 243, 255, 0.3) transparent;
+}
+#radar-lateral-bunker::-webkit-scrollbar {
+    width: 3px;
+}
+#radar-lateral-bunker::-webkit-scrollbar-thumb {
+    background: rgba(0, 243, 255, 0.4);
+    border-radius: 4px;
+}
+
+#modal-global-chat .glass-panel {
+    max-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.privacy-blur > * {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.05s ease !important;
+}
+.privacy-blur {
+    background: #000000 !important;
+    background-image: none !important;
+}
+
+.tron-grid {
+    position: fixed;
+    top: 0; left: 0; right: 0; margin: 0 auto;
+    width: 100%; max-width: 480px; height: 100vh;
+    background-image: 
+        linear-gradient(rgba(0, 243, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+    transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px);
+    animation: gridMove 20s linear infinite;
+    z-index: -2;
+    opacity: 0.4;
+}
+
+.grid-fade {
+    position: fixed;
+    top: 0; left: 0; right: 0; margin: 0 auto;
+    width: 100%; max-width: 480px; height: 100vh;
+    background: radial-gradient(circle at center 30%, transparent 0%, var(--bg-deep) 70%);
+    z-index: -1;
+}
+
+@keyframes gridMove {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 400px; }
+}
+
+.watermark-footer {
+    position: fixed;
+    bottom: 4px;
+    left: 0; right: 0; margin: 0 auto;
+    width: 100%; max-width: 480px;
+    text-align: center;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--neon-cyan);
+    opacity: 0.35;
+    z-index: 999;
+    text-transform: uppercase;
+}
+.watermark-footer a {
+    color: var(--neon-cyan);
+    text-decoration: underline;
+    pointer-events: auto;
+}
+
+.text-3d-cyan {
+    font-family: 'Orbitron', sans-serif;
+    color: #fff;
+    font-size: 1.8rem;
+    text-shadow: 
+        0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 
+        0 4px 0 #b9b9b9, 0 0 5px rgba(0,0,0,.1), 
+        0 0 20px var(--neon-cyan), 0 0 40px var(--neon-cyan);
+}
+
+.text-3d-magenta {
+    font-family: 'Orbitron', sans-serif;
+    color: #fff;
+    font-size: 1.8rem;
+    text-shadow: 
+        0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 
+        0 0 10px var(--neon-magenta), 0 0 20px var(--neon-magenta), 0 0 40px var(--neon-magenta);
+}
+
+.text-3d-red {
+    font-family: 'Orbitron', sans-serif;
+    color: #fff;
+    font-size: 2rem;
+    text-shadow: 
+        0 1px 0 #ccc, 0 2px 0 #c9c9c9, 
+        0 0 10px var(--neon-red), 0 0 20px var(--neon-red), 0 0 40px var(--neon-red);
+}
+
+.glass-panel {
+    background: rgba(10, 10, 15, 0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    border-radius: 16px;
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.1), inset 0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+.btn-neon-cyan {
+    background: linear-gradient(135deg, rgba(0,243,255,0.2) 0%, rgba(0,100,255,0.4) 100%);
+    border: 2px solid var(--neon-cyan);
+    box-shadow: 0 0 10px var(--neon-cyan), inset 0 0 10px var(--neon-cyan);
+    color: white;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.btn-neon-cyan:active {
+    transform: scale(0.95) translateY(2px);
+    box-shadow: 0 0 20px var(--neon-cyan), inset 0 0 20px var(--neon-cyan);
+}
+
+.btn-neon-magenta {
+    background: linear-gradient(135deg, rgba(255,0,255,0.2) 0%, rgba(150,0,150,0.4) 100%);
+    border: 2px solid var(--neon-magenta);
+    box-shadow: 0 0 10px var(--neon-magenta), inset 0 0 10px var(--neon-magenta);
+    color: white;
+    font-weight: 700;
+}
+
+.btn-neon-magenta:active {
+    transform: scale(0.95) translateY(2px);
+}
+
+.feed-container {
+    height: calc(100vh - 120px);
+    overflow-y: auto;
+    padding-bottom: 20px;
+}
+
+.feed-container::-webkit-scrollbar { width: 0px; }
+
+.chat-bubble {
+    background: rgba(15, 15, 20, 0.9);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 20px;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+
+.chat-bubble.admin-post {
+    border-left: 3px solid var(--neon-cyan);
+}
+
+.chat-bubble.user-post {
+    border-left: 3px solid var(--neon-magenta);
+}
+
+.video-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 5px;
+    justify-content: center;
+}
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #111;
+    overflow: hidden;
+}
+.video-wrapper video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-hidden {
+    display: none !important;
+}
+
+.video-floating-tab {
+    position: fixed;
+    top: 50%;
+    left: -10px;
+    transform: translateY(-50%);
+    background: rgba(10, 10, 15, 0.95);
+    border: 2px solid var(--neon-cyan);
+    border-left: none;
+    border-radius: 0 16px 16px 0;
+    padding: 12px 16px 12px 20px;
+    box-shadow: 4px 0 15px rgba(0, 243, 255, 0.3);
+    z-index: 9999;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: left 0.3s ease, box-shadow 0.3s ease;
+}
+
+.video-floating-tab:hover {
+    left: 0;
+    box-shadow: 4px 0 25px rgba(0, 243, 255, 0.6);
+}
+
+.video-floating-tab .pulse-dot {
+    width: 12px;
+    height: 12px;
+    background-color: var(--neon-red);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--neon-red);
+    animation: redPulse 1.5s infinite;
+}
+
+.video-floating-tab i {
+    color: var(--neon-cyan);
+    font-size: 1.2rem;
+}
+
+@keyframes redPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 51, 51, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0); }
+}
+
+.content-locked .media-container {
+    filter: blur(15px) grayscale(50%);
+    transition: filter 0.3s ease;
+}
+
+.content-locked .text-container {
+    filter: blur(5px);
+    user-select: none;
+}
+
+.lock-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.6);
+    border-radius: 12px;
+    z-index: 10;
+    cursor: pointer;
+}
+
+.levitate {
+    animation: levitate 3s ease-in-out infinite;
+}
+
+@keyframes levitate {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+.fab-lang, .toast {
+    max-width: 480px;
+}
+
+.fab-lang {
+    position: fixed;
+    bottom: 95px;
+    right: 16px;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid var(--neon-cyan);
+    box-shadow: 0 0 15px var(--neon-cyan);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 90;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.fab-lang:active {
+    transform: scale(0.9);
+    box-shadow: 0 0 25px var(--neon-cyan);
+}
+
+.toast {
+    position: fixed;
+    bottom: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid var(--neon-cyan);
+    box-shadow: 0 0 15px var(--neon-cyan);
+    color: #fff;
+    padding: 14px 28px;
+    border-radius: 50px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem;
+    transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 9999;
+}
+.toast.show { bottom: 25px; }
+
+.cyber-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(0, 243, 255, 0.4);
+    color: #fff;
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+.cyber-input:focus {
+    outline: none;
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+}
+
+@keyframes fadeInMsg {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+    animation: fadeInMsg 0.3s ease-out forwards;
+}
+
+.rank-badge {
+    mix-blend-mode: screen;
+    background-color: transparent !important;
+}
+
+/* 🖥️ ADAPTACIÓN PARA ESCRITORIO (ESTILO TELEGRAM DESKTOP) */
+@media (min-width: 768px) {
+    body {
+        max-width: 1100px;
+        border-left: 2px solid rgba(0, 243, 255, 0.25);
+        border-right: 2px solid rgba(0, 243, 255, 0.25);
+        box-shadow: 0 0 50px rgba(0, 243, 255, 0.2);
+    }
+    .tron-grid, .grid-fade, .watermark-footer, .fab-lang, .toast {
+        max-width: 1100px;
+    }
+}

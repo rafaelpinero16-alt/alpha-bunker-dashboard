@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<!--
+  index.html — Punto de entrada único de Alpha Bunker (Telegram Mini App + APK Capacitor + Web).
+  Orden de scripts v2 al final de <body>; no añadir defer/async a los scripts de js/.
+-->
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <!-- viewport-fit=cover: habilita env(safe-area-inset-*) en APK/iOS (notch y barra de gestos) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- 🛡️ CSP: Railway (HTTPS + WSS), TON Connect (bridges y wallets por HTTPS), Telegram y CDNs usados.
+         'unsafe-inline' sigue siendo necesario mientras el HTML use onclick="…" y estilos inline. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://telegram.org https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https://alpha-bunker-backend-production.up.railway.app wss://alpha-bunker-backend-production.up.railway.app https://*.tonapi.io https://*.ton.org https://*.tonhubapi.com https://*.mytonwallet.org https://raw.githubusercontent.com https:; worker-src 'self'; manifest-src 'self'; frame-src 'self' https://telegram.org; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <!-- 🛡️ DESTRUCCIÓN TOTAL DE CACHÉ EN TELEGRAM -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <title>ALPHA APP - Hybrid Ecosystem & Vault</title>
+    <!-- Tailwind (CDN de desarrollo). En producción compílalo a CSS estático. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 3D del splash (opcional). defer: se ejecuta antes de DOMContentLoaded. -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Press+Start+2P&family=Rajdhani:wght@500;700;900&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#050505">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/hybrid.css">
+    <style>
+        video::-webkit-media-controls-download-button { display: none !important; }
+        video::-internal-media-controls-overflow-button { display: none !important; }
+        .no-download { -webkit-touch-callout: none; pointer-events: auto; }
+        
+        /* 🚀 GPU ACCELERATION & 3D FLUIDITY */
+        .gpu-accelerated {
+            transform: translate3d(0, 0, 0);
+            will-change: transform, opacity;
+            backface-visibility: hidden;
+        }
+
+        /* Brillo Neón Punto Online */
+        .neon-green-dot {
+            background-color: #00ff66;
+            box-shadow: 0 0 10px #00ff66, 0 0 20px #00ff66;
+        }
+
+        /* 🛡️ PIP MODE STYLES (Video Arrastrable) */
+        .pip-mode {
+            position: fixed !important;
+            width: 160px !important;
+            height: 240px !important;
+            bottom: 80px;
+            right: 20px;
+            border-radius: 16px !important;
+            overflow: hidden;
+            border: 2px solid #00f3ff;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.9), 0 0 15px rgba(0, 243, 255, 0.4);
+            z-index: 9999 !important;
+            background-color: #000;
+        }
+        .pip-mode #video-drag-handle { display: flex !important; }
+        .pip-mode aside { display: none !important; }
+        .pip-mode #pip-controls { display: flex !important; }
+
+        /* Estilo de pestañas de Ajustes */
+        .settings-tab-active {
+            border-color: #00f3ff !important;
+            color: #00f3ff !important;
+            background: rgba(0, 243, 255, 0.15) !important;
+        }
+    </style>
+</head>
+<body class="gpu-accelerated">
+    <div class="tron-grid"></div>
+    <div class="grid-fade"></div>
+    <div class="watermark-footer" id="watermark-signature">
+        RAFAEL SANCHEZ / "ARQUITECTO DE BOTS Y MINI APPS" * TELEGRAM: <a href="#" onclick="app.openLink('https://t.me/Alpha_store_botbot'); return false;">@Alpha_store_botbot</a>
+    </div>
+
+    <!-- BOTÓN DE IDIOMA GLOBAL -->
+    <button onclick="app.toggleLanguage()" class="fab-lang levitate z-[100] gpu-accelerated">
+        <i class="fa-solid fa-language text-xl text-[#00f3ff] mb-0.5"></i>
+        <span class="text-[11px] font-black text-[#00f3ff]" id="fab-lang-text">ES</span>
+    </button>
+
+    <!-- 📱 TELEGRAM-STYLE SLIDING SIDEBAR DRAWER -->
+    <div id="sidebar-backdrop" onclick="app.closeSidebar()" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[130] opacity-0 pointer-events-none transition-opacity duration-300"></div>
+    <aside id="telegram-sidebar" class="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-[#08080c] border-r-2 border-[#00f3ff] z-[135] transform -translate-x-full transition-transform duration-300 flex flex-col shadow-[0_0_35px_rgba(0,243,255,0.4)] overflow-y-auto">
+        <div class="p-5 bg-gradient-to-b from-[#0a0a12] to-black border-b border-[#00f3ff]/30 flex flex-col items-center relative">
+            <button onclick="app.closeSidebar()" class="absolute top-4 right-4 text-neutral-400 hover:text-white text-base"><i class="fa-solid fa-times"></i></button>
+            <div class="relative w-20 h-20 rounded-full border-2 border-[#00f3ff] overflow-hidden mb-3 shadow-[0_0_15px_#00f3ff] bg-black">
+                <img id="sidebar-avatar-img" src="assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-full h-full object-cover">
+                <span class="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full neon-green-dot border-2 border-black"></span>
+            </div>
+            <h3 id="sidebar-name" class="font-black text-white text-base tracking-wider uppercase">USER</h3>
+            <span id="sidebar-rank" class="text-[10px] font-bold text-[#ffb703] bg-[#ffb703]/20 px-2.5 py-0.5 rounded-full border border-[#ffb703]/40 mt-1">ESPÍA 🕵️</span>
+        </div>
+
+        <div class="flex-1 p-3 space-y-2">
+            <button onclick="app.openProfile(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#00f3ff] text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-user-gear text-[#00f3ff] text-base w-6"></i> <span id="sb-profile">Mi Perfil y Cuenta</span>
+            </button>
+            <button onclick="app.openSettingsModal(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#00f3ff] text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-sliders text-[#ff00ff] text-base w-6"></i> <span id="sb-settings">Ajustes Generales</span>
+            </button>
+            <button onclick="app.openSlotsModal(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#ffb703] text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-layer-group text-[#ffb703] text-base w-6"></i> <span id="sb-slots">Gestionar 10 Slots</span>
+            </button>
+            <button onclick="app.openVideoRoomsModal(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-amber-400 text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-video text-amber-400 text-base w-6"></i> <span id="sb-video-rooms">Videochat Rooms</span>
+            </button>
+            <button onclick="app.openGlobalChat(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#00f3ff] text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-comments text-[#00f3ff] text-base w-6"></i> <span id="sb-global-chat">Global Bunker Chat</span>
+            </button>
+            <button onclick="app.openAVSettings(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-emerald-400 text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-sliders text-emerald-400 text-base w-6"></i> <span id="sb-av">Hardware A/V</span>
+            </button>
+            <button onclick="app.openSupport(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#ff00ff] text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-address-book text-[#ff00ff] text-base w-6"></i> <span id="sb-contacts">Contactos y DMs</span>
+            </button>
+
+            <div class="border-t border-neutral-800 my-2 pt-2"></div>
+
+            <button onclick="app.openSupport(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-circle-question text-cyan-400 text-sm w-5"></i> <span id="sb-ask">Hacer una pregunta</span>
+            </button>
+            <button onclick="app.openLink('https://t.me/Alpha_store_botbot'); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-file-lines text-cyan-400 text-sm w-5"></i> <span id="sb-faq">Preguntas Frecuentes (FAQ)</span>
+            </button>
+            <button onclick="app.openLink('https://t.me/Alpha_store_botbot'); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-graduation-cap text-cyan-400 text-sm w-5"></i> <span id="sb-learn">Aprende sobre Alpha App</span>
+            </button>
+            <button onclick="location.href='privacy.html'" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-shield-cat text-cyan-400 text-sm w-5"></i> <span id="sb-privacy">Política de Privacidad</span>
+            </button>
+            <button onclick="location.href='terms.html'" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-file-contract text-cyan-400 text-sm w-5"></i> <span id="sb-terms">Términos de Servicio</span>
+            </button>
+        </div>
+
+        <div class="p-4 border-t border-neutral-800 bg-black/40">
+            <button onclick="app.closeSidebar(); app.logout();" class="w-full bg-red-950/40 border border-red-800 text-red-300 py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-red-900/40 transition">
+                <i class="fa-solid fa-right-from-bracket"></i> <span id="sb-logout">Cerrar Sesión</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- 🛡️ VIEW 0: SPLASH SCREEN 3D -->
+    <div id="view-splash" class="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center transition-opacity duration-1000 gpu-accelerated">
+        <div id="splash-3d-container" class="relative w-44 h-44 mb-6 flex items-center justify-center">
+            <canvas id="splash-3d-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+            <img src="./assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-32 h-32 object-cover rounded-full shadow-[0_0_35px_#00f3ff] animate-pulse relative z-10">
+        </div>
+        <h1 class="text-3xl font-black text-[#00f3ff] tracking-widest uppercase" style="font-family: 'Orbitron', sans-serif; text-shadow: 0 0 15px #00f3ff;">Alpha App</h1>
+        <div class="mt-8 flex items-center justify-center gap-2">
+            <div class="w-3 h-3 bg-[#ff00ff] rounded-full animate-bounce"></div>
+            <div class="w-3 h-3 bg-[#00f3ff] rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+            <div class="w-3 h-3 bg-[#ffb703] rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+        </div>
+    </div>
+
+    <!-- 🛡️ VIEW -1: AGE CONSENT (+18) -->
+    <div id="view-consent" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10 transition-opacity duration-500 gpu-accelerated">
+        <i class="fa-solid fa-triangle-exclamation text-8xl text-[#ff3333] mb-6 drop-shadow-[0_0_20px_#ff3333] levitate"></i>
+        <h1 id="txt-warn-title" class="text-3d-red text-4xl text-center mb-3 leading-tight font-black">ADVERTENCIA</h1>
+        <h2 id="txt-warn-sub" class="text-2xl text-[#ff00ff] font-extrabold tracking-[0.2em] mb-8 text-center" style="text-shadow: 0 0 10px #ff00ff;">+18 ADULT CONTENT</h2>
+        <div class="glass-panel p-6 mb-8 max-w-sm text-center border-[#ff3333]">
+            <p id="txt-warn-p1" class="text-base text-gray-200 mb-4 font-semibold">Este espacio contiene material explícito y sexual.</p>
+            <p id="txt-warn-p2" class="text-base text-gray-300 font-medium">Al ingresar, confirmas bajo tu responsabilidad que eres mayor de edad (18+) y consientes visualizar este contenido (Safe Harbor Compliance).</p>
+        </div>
+        <div class="w-full max-w-sm space-y-4">
+            <button onclick="app.acceptConsent()" class="w-full btn-neon-magenta py-4 rounded-xl text-2xl font-black uppercase tracking-wider levitate">
+                <i class="fa-solid fa-check-circle mr-2"></i> <span id="btn-accept-text">ACEPTO / I ACCEPT</span>
+            </button>
+            <button onclick="app.exitApp()" class="w-full bg-transparent border-2 border-gray-600 text-gray-300 py-3.5 rounded-xl font-bold uppercase transition hover:text-white hover:border-white text-lg">
+                <i class="fa-solid fa-times mr-2"></i> <span id="btn-exit-text">SALIR / EXIT</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 🛡️ VIEW -0.5: CAPTCHA OBLIGATORIO -->
+    <div id="view-captcha" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10 transition-opacity duration-500 gpu-accelerated">
+        <i class="fa-solid fa-shield-halved text-7xl text-[#00f3ff] mb-4 drop-shadow-[0_0_15px_#00f3ff] levitate"></i>
+        <h1 id="txt-cap-title" class="text-3d-cyan text-3xl text-center mb-3 leading-tight font-black">VERIFICACIÓN HUMANA</h1>
+        <p id="txt-cap-desc" class="text-sm text-gray-300 text-center mb-6 font-medium">Resuelve el código de seguridad para ingresar al Vault.</p>
+        <div class="glass-panel p-6 w-full max-w-sm text-center border-[#00f3ff]">
+            <div id="captcha-display" class="bg-black border-2 border-dashed border-[#00f3ff] py-4 rounded-xl text-3xl font-black text-[#00f3ff] tracking-[0.4em] mb-4 select-none" style="text-shadow: 0 0 10px #00f3ff;">A7X9K</div>
+            <button onclick="app.generateCaptcha()" class="text-xs text-gray-400 hover:text-white underline mb-6 block mx-auto">
+                <i class="fa-solid fa-rotate-right mr-1"></i> <span id="btn-new-code">Generar otro código</span>
+            </button>
+            <div class="mb-5">
+                <input type="text" id="captcha-input" placeholder="Ingresa el código..." class="cyber-input text-center uppercase tracking-widest text-lg" maxlength="5">
+            </div>
+            <button onclick="app.verifyCaptcha()" class="w-full btn-neon-cyan py-4 rounded-xl font-black text-lg uppercase tracking-wider levitate">
+                <i class="fa-solid fa-check mr-2"></i> <span id="btn-verify-text">VERIFICAR ACCESO</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- VIEW 0: LOGIN -->
+    <div id="view-login" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10 transition-opacity duration-500 gpu-accelerated">
+        <button onclick="app.switchView('consent')" class="absolute top-6 left-6 text-[#00f3ff] border border-[#00f3ff] rounded-full px-4 py-2 flex items-center hover:bg-[rgba(0,243,255,0.1)] transition text-sm font-bold z-50">
+            <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text">VOLVER</span>
+        </button>
+        <i class="fa-brands fa-telegram text-7xl text-[#00f3ff] mb-4 drop-shadow-[0_0_15px_#00f3ff] levitate"></i>
+        <h1 id="txt-login-title" class="text-3d-cyan text-4xl text-center mb-6 leading-tight font-black">ACCESO AL VAULT</h1>
+        <div class="glass-panel p-6 w-full max-w-sm">
+            <p id="txt-login-desc" class="text-sm text-gray-200 text-center mb-5 font-medium">Inicia sesión con tu email y contraseña, o con Telegram.</p>
+            
+            <div class="mb-4">
+                <label id="lbl-email-login" class="block text-xs text-[#00f3ff] mb-1 font-bold tracking-wider uppercase">CORREO ELECTRÓNICO</label>
+                <div class="relative">
+                    <i class="fa-solid fa-envelope absolute left-4 top-1/2 transform -translate-y-1/2 text-[#00f3ff]"></i>
+                    <input type="email" id="login-email" autocomplete="username" placeholder="tucorreo@email.com" class="cyber-input pl-11 text-base">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label id="lbl-login-pwd" class="block text-xs text-[#00f3ff] mb-1 font-bold tracking-wider uppercase">CONTRASEÑA</label>
+                <div class="relative">
+                    <i class="fa-solid fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-[#00f3ff]"></i>
+                    <input type="password" id="login-password" autocomplete="current-password" placeholder="••••••••" class="cyber-input pl-11 text-base" onkeydown="if(event.key==='Enter')app.loginWithEmail()">
+                </div>
+            </div>
+
+            <button onclick="app.loginWithEmail()" id="btn-phone-text" class="w-full bg-transparent border-2 border-[#00f3ff] text-[#00f3ff] py-3.5 rounded-xl font-black text-base uppercase hover:bg-[rgba(0,243,255,0.1)] transition-colors mb-3">ACCEDER AL VAULT</button>
+            
+            <div class="flex items-center my-3">
+                <div class="flex-grow border-t border-gray-700"></div>
+                <span id="txt-or-direct" class="mx-3 text-gray-400 text-xs font-bold">Ó DIRECTAMENTE CON</span>
+                <div class="flex-grow border-t border-gray-700"></div>
+            </div>
+
+            <button onclick="app.loginWithTelegram()" class="w-full flex items-center justify-center gap-3 bg-[#2481cc] text-white py-3.5 rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(36,129,204,0.5)] levitate active:scale-95 transition-transform">
+                <i class="fa-brands fa-telegram text-xl"></i> <span id="btn-tg-text">LOGIN CON TELEGRAM</span>
+            </button>
+
+            <div class="mt-5 text-center">
+                <p id="txt-no-account" class="text-xs text-gray-300 mb-1 font-medium">¿No tienes cuenta aún?</p>
+                <button onclick="app.switchView('register')" id="btn-create-acc" class="text-sm font-bold text-[#ff00ff] hover:text-white transition border-b border-[#ff00ff] hover:border-white pb-0.5">CREAR CUENTA NUEVA</button>
+            </div>
+        </div>
+    </div> 
+
+    <!-- VIEW 0.5: REGISTRATION -->
+    <div id="view-register" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10 transition-opacity duration-500 gpu-accelerated">
+        <button onclick="app.switchView('login')" class="absolute top-6 left-6 text-[#ff00ff] border border-[#ff00ff] rounded-full px-4 py-2 flex items-center hover:bg-[rgba(255,0,255,0.1)] transition text-sm font-bold z-50">
+            <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text">VOLVER</span>
+        </button>
+        <i class="fa-solid fa-user-plus text-6xl text-[#ff00ff] mb-3 drop-shadow-[0_0_15px_#ff00ff] levitate"></i>
+        <h1 id="txt-reg-title" class="text-3d-magenta text-3xl text-center mb-4 leading-tight font-black">NUEVA CUENTA</h1>
+        
+        <div class="glass-panel p-6 w-full max-w-sm">
+            <p id="txt-reg-desc" class="text-xs text-gray-200 text-center mb-4 font-medium">Elige tu rol e ingresa tus credenciales de acceso.</p>
+            
+            <label id="lbl-reg-role" class="block text-xs text-[#ff00ff] mb-2 font-bold tracking-wider uppercase text-center">TIPO DE CUENTA</label>
+            <div class="grid grid-cols-2 gap-2 mb-4">
+                <button type="button" id="reg-role-fan" onclick="app.setRegisterRole('fan')" class="py-2.5 px-3 rounded-xl border-2 border-[#ff00ff] bg-[#ff00ff]/20 text-white font-black text-xs uppercase flex items-center justify-center gap-1.5 transition">
+                    <i class="fa-solid fa-eye"></i> <span id="btn-role-fan-txt">SOY FAN</span>
+                </button>
+                <button type="button" id="reg-role-creator" onclick="app.setRegisterRole('creator')" class="py-2.5 px-3 rounded-xl border-2 border-neutral-700 bg-black text-neutral-400 font-bold text-xs uppercase flex items-center justify-center gap-1.5 transition">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> <span id="btn-role-creator-txt">SOY CREADOR</span>
+                </button>
+            </div>
+
+            <div class="mb-3">
+                <label id="lbl-email" class="block text-xs text-[#ff00ff] mb-1 font-bold tracking-wider uppercase">CORREO ELECTRÓNICO</label>
+                <div class="relative">
+                    <i class="fa-solid fa-envelope absolute left-4 top-1/2 transform -translate-y-1/2 text-[#ff00ff]"></i>
+                    <input type="email" id="reg-email-input" autocomplete="username" placeholder="tucorreo@email.com" class="cyber-input border-[#ff00ff] focus:border-[#ff00ff] pl-11 text-sm">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label id="lbl-reg-name" class="block text-xs text-[#ff00ff] mb-1 font-bold tracking-wider uppercase">ALIAS</label>
+                <div class="relative">
+                    <i class="fa-solid fa-user absolute left-4 top-1/2 transform -translate-y-1/2 text-[#ff00ff]"></i>
+                    <input type="text" id="reg-name-input" maxlength="32" autocomplete="nickname" placeholder="Tu alias VIP" class="cyber-input border-[#ff00ff] focus:border-[#ff00ff] pl-11 text-sm">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label id="lbl-reg-pwd" class="block text-xs text-[#ff00ff] mb-1 font-bold tracking-wider uppercase">CONTRASEÑA</label>
+                <div class="relative">
+                    <i class="fa-solid fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-[#ff00ff]"></i>
+                    <input type="password" id="reg-password-input" autocomplete="new-password" placeholder="Mínimo 8 caracteres" class="cyber-input border-[#ff00ff] focus:border-[#ff00ff] pl-11 text-sm">
+                </div>
+            </div>
+
+            <button onclick="app.registerWithData()" id="btn-reg-text" class="w-full bg-transparent border-2 border-[#ff00ff] text-[#ff00ff] py-3.5 rounded-xl font-black text-sm uppercase hover:bg-[rgba(255,0,255,0.1)] transition-colors mb-3">REGISTRARSE</button>
+        </div>
+    </div>
+
+    <!-- VIEW 2: FEED -->
+    <div id="view-feed" class="hidden h-screen flex flex-col relative z-10 gpu-accelerated">
+        <header class="glass-panel mx-2 mt-2 p-3 flex flex-col gap-2.5 z-20">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <button onclick="app.openSidebar()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/60 rounded-xl w-10 h-10 flex items-center justify-center hover:bg-[rgba(0,243,255,0.2)] transition text-sm shadow-[0_0_10px_#00f3ff] shrink-0" title="Menú Lateral">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="relative w-14 h-14 rounded-full border-2 border-[#00f3ff] overflow-hidden shadow-[0_0_15px_#00f3ff] flex items-center justify-center bg-black shrink-0 cursor-pointer" onclick="app.openProfile()">
+                        <img id="avatar-feed" src="assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex flex-col justify-center min-w-0">
+                        <h3 class="font-black text-white text-sm tracking-wide truncate max-w-[110px]" id="name-feed">USER</h3>
+                        <p class="text-[9px] font-black text-[#ffb703] tracking-wider bg-[#ffb703]/20 px-2 py-0.5 rounded-full border border-[#ffb703]/50 mt-0.5 inline-block w-fit"><span id="rank-feed">ESPÍA 🕵️</span></p>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2 items-center">
+                    <button onclick="app.connectWallet()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/60 rounded-xl px-3 py-2 flex items-center hover:bg-[rgba(0,243,255,0.2)] transition text-[10px] font-bold shadow-[0_0_8px_#ff00ff]">
+                        <i class="fa-solid fa-wallet mr-1 text-xs"></i> <span id="btn-wallet-hdr">WALLET</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-neutral-800/80 text-[10px]">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-[#00f3ff] bg-[#00f3ff]/10 px-2.5 py-1 rounded-lg border border-[#00f3ff]/30 shadow-[0_0_5px_#00f3ff] flex items-center gap-1">
+                        <i class="fa-solid fa-earth-americas"></i> Activos: <span id="views-counter">0</span>
+                    </span>
+                    <span class="font-bold text-[#ffb703] bg-[#ffb703]/10 px-2.5 py-1 rounded-lg border border-[#ffb703]/30 shadow-[0_0_5px_#ffb703] flex items-center gap-1">
+                        <i class="fa-solid fa-fire"></i> Visitas: <span id="daily-visits-counter">0</span>
+                    </span>
+                </div>
+                <span class="text-[9px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">● Sistema Operativo</span>
+            </div>
+        </header>
+
+        <!-- BANNER CHAT GLOBAL & VIDEO BÚNKER -->
+        <div class="mx-2 mt-2 bg-gradient-to-r from-neutral-900 via-neutral-900 to-black border-2 border-[#00f3ff] rounded-2xl p-3.5 shadow-[0_0_15px_rgba(0,243,255,0.2)] flex items-center justify-between shrink-0" id="banner-chat-global">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-[#00f3ff]/20 border border-[#00f3ff] flex items-center justify-center text-[#00f3ff] text-xl animate-pulse shrink-0">
+                    <i class="fa-solid fa-video"></i>
+                </div>
+                <div>
+                    <h4 class="text-xs font-black text-white uppercase" id="wall-chat-title">CHAT GLOBAL & VIDEO BÚNKER</h4>
+                    <p class="text-[10px] text-gray-300 font-medium" id="wall-chat-desc">Comunidad en directo (Independiente)</p>
+                </div>
+            </div>
+            <div class="flex gap-1.5 shrink-0">
+                <button onclick="app.openGlobalChat()" class="bg-black border border-[#00f3ff] hover:bg-[#00f3ff]/20 text-[#00f3ff] font-black px-3 py-2 rounded-xl text-[10px] uppercase shadow-[0_0_10px_rgba(0,243,255,0.4)] transition flex items-center gap-1">
+                    <i class="fa-solid fa-comments"></i> <span id="btn-wall-chat">ABRIR CHAT</span>
+                </button>
+                <button id="btn-join-video-global" onclick="app.joinVideoBunker()" class="bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black px-3 py-2 rounded-xl text-[10px] uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition flex items-center gap-1 animate-pulse">
+                    <i class="fa-solid fa-video"></i> <span id="btn-wall-video">ABRIR VIDEO</span>
+                </button>
+            </div>
+        </div>
+
+        <main class="flex-1 feed-container p-4 mt-2 snap-y snap-mandatory scroll-smooth overflow-y-auto" id="feed-container"></main>
+
+        <div class="glass-panel mx-2 mb-2 p-2.5 flex justify-between items-end z-20 px-4">
+            <button onclick="app.openMenuModal()" class="flex flex-col items-center text-[#ff00ff] hover:scale-110 transition w-14 pb-1">
+                <i class="fa-solid fa-layer-group text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i><span class="text-[9px] font-black tracking-wide" id="nav-catalog">CATÁLOGO</span>
+            </button>
+            <button onclick="app.openCommunitiesModal()" class="flex flex-col items-center text-[#ff00ff] hover:scale-110 transition w-14 pb-1">
+                <i class="fa-solid fa-users text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i><span class="text-[9px] font-black tracking-wide" id="nav-communities">COMUNIDAD</span>
+            </button>
+            <button onclick="app.openUploadPanel()" class="flex flex-col items-center text-[#00f3ff] hover:scale-110 transition relative -mt-7 w-16">
+                <div class="bg-black border-2 border-[#00f3ff] p-3.5 rounded-full shadow-[0_0_20px_#00f3ff] animate-pulse mb-1">
+                    <i class="fa-solid fa-circle-plus text-2xl drop-shadow-[0_0_5px_#ff00ff]"></i>
+                </div>
+                <span class="text-[10px] font-black tracking-wide text-[#00f3ff]" id="nav-post">PUBLICAR</span>
+            </button>
+            <button onclick="app.openProfile()" class="flex flex-col items-center text-[#ffb703] levitate hover:scale-110 transition w-14 pb-1">
+                <i class="fa-solid fa-user-astronaut text-2xl mb-1 drop-shadow-[0_0_5px_#ffb703]"></i><span class="text-[9px] font-black tracking-wide" id="nav-profile">MI PERFIL</span>
+            </button>
+            <button onclick="app.openSupport()" class="flex flex-col items-center text-[#ff00ff] hover:scale-110 transition w-14 pb-1">
+                <i class="fa-solid fa-envelope text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i><span class="text-[9px] font-black tracking-wide" id="nav-support">DMs</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- VIEW 3: UPLOAD POST (PUBLICAR CONTENIDO) -->
+    <div id="view-upload" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10 gpu-accelerated">
+        <button onclick="app.switchView('feed')" class="absolute top-6 left-6 text-[#00f3ff] border border-[#00f3ff] rounded-full px-4 py-2 flex items-center hover:bg-[rgba(0,243,255,0.1)] transition text-sm font-bold z-50">
+            <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text">VOLVER</span>
+        </button>
+        <i class="fa-solid fa-cloud-arrow-up text-6xl text-[#00f3ff] mb-4 drop-shadow-[0_0_15px_#ff00ff] levitate"></i>
+        <h2 class="text-3d-cyan text-3xl text-center mb-6 font-black" id="upload-hdr">SUBIR CONTENIDO</h2>
+        
+        <div class="glass-panel w-full max-w-md p-6 space-y-5 bg-black/80">
+            <div>
+                <label class="block text-xs text-[#00f3ff] mb-2 font-bold uppercase tracking-wider" id="lbl-level">NIVEL REQUERIDO PARA VER 👀</label>
+                <select id="admin-level" class="cyber-input text-sm">
+                    <option value="0" id="opt-0">🆓 Público (Todos los Visitantes)</option>
+                    <option value="1" id="opt-1">🎖️ Bloquear para SOLDIER</option>
+                    <option value="2" id="opt-2">⚔️ Bloquear para VETERAN</option>
+                    <option value="3" id="opt-3">👑 Bloquear para LEGEND</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-[#ff00ff] mb-2 font-bold uppercase tracking-wider" id="lbl-file">FOTO O VIDEO (Galería) 📸</label>
+                <div class="relative overflow-hidden border-2 border-dashed border-[#ff00ff] rounded-xl bg-[#ff00ff]/10 hover:bg-[#ff00ff]/20 transition cursor-pointer flex flex-col items-center justify-center py-8" onclick="document.getElementById('post-media-input').click()">
+                    <i class="fa-solid fa-image text-3xl text-[#ff00ff] mb-2"></i>
+                    <span class="text-xs font-bold text-white uppercase tracking-wider" id="txt-upload">Tocar para subir archivo</span>
+                </div>
+                <input type="file" id="post-media-input" class="hidden" accept="image/*,video/*" onchange="app.previewImage(event)">
+            </div>
+            <div>
+                <label class="block text-xs text-[#ffb703] mb-2 font-bold uppercase tracking-wider" id="lbl-price">PRECIO PPV EN $ALPHA (0 = sin pago)</label>
+                <input type="number" id="admin-price" min="0" step="1" value="0" class="cyber-input text-sm">
+            </div>
+            <div>
+                <label class="block text-xs text-[#ffb703] mb-2 font-bold uppercase tracking-wider" id="lbl-desc">TEXTO / DESCRIPCIÓN</label>
+                <textarea id="admin-text-es" rows="3" class="cyber-input border-[#ffb703] focus:border-[#ffb703] text-sm" placeholder="Escribe algo increíble..."></textarea>
+            </div>
+            <button onclick="app.publishPost()" class="w-full btn-neon-cyan py-3.5 rounded-xl font-black text-sm uppercase tracking-wider mt-2">
+                <i class="fa-solid fa-paper-plane mr-2"></i> <span id="btn-pub-text">PUBLICAR AL MURO</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: PERFIL DEL USUARIO -->
+    <div id="modal-profile" class="hidden fixed inset-0 z-[65] flex items-end justify-center bg-black bg-opacity-90 backdrop-blur-sm transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-md h-[85vh] rounded-t-3xl p-6 flex flex-col relative border-b-0 overflow-y-auto">
+            <input type="file" id="avatar-file-input" class="hidden" accept="image/*" onchange="app.handleAvatarChange(event)">
+            
+            <button onclick="app.openSettingsModal()" id="btn-settings-gear" class="absolute top-4 left-4 bg-neutral-900 border border-[#00f3ff] text-[#00f3ff] rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-[0_0_12px_rgba(0,243,255,0.4)] transition hover:scale-110 active:scale-95 z-50 text-base" title="Ajustes del Búnker">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+
+            <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full flex items-center justify-center px-4 py-2 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 z-50 text-sm">
+                <i class="fa-solid fa-arrow-left mr-1"></i> <span class="btn-back-text">VOLVER</span>
+            </button>
+            <h2 class="text-3d-cyan text-3xl text-center mb-6 mt-2 font-black" id="prof-title">MI PERFIL</h2>
+            
+            <div class="flex flex-col items-center mb-6">
+                <div onclick="app.triggerAvatarInput()" class="relative w-28 h-28 rounded-full border-4 border-[#ff00ff] shadow-[0_0_20px_#ff00ff] overflow-visible mb-3 cursor-pointer group flex items-center justify-center bg-black">
+                    <img id="prof-avatar-img" src="" class="hidden w-full h-full object-cover rounded-full" alt="User Avatar">
+                    <span id="profile-neon-dot" class="absolute bottom-1 right-1 w-5 h-5 rounded-full neon-green-dot border-2 border-black animate-pulse z-20"></span>
+                    <div class="absolute inset-0 bg-black/50 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition z-10">
+                        <i class="fa-solid fa-camera text-white text-xl mb-1"></i>
+                        <span class="text-[10px] text-white font-bold tracking-wider" id="lbl-change-photo">CAMBIAR</span>
+                    </div>
+                </div>
+                <p class="text-sm font-black text-[#ffb703] mt-1 bg-[#ffb703]/20 px-4 py-1.5 rounded-full border border-[#ffb703]/50" id="prof-rank">ESPÍA 🕵️</p>
+                
+                <div class="mt-3 flex items-center gap-2 bg-neutral-900 border border-neutral-700 px-3 py-1.5 rounded-full">
+                    <span class="text-xs text-neutral-300 font-bold" id="lbl-prof-status">Estado:</span>
+                    <button onclick="app.toggleOnlineStatus()" id="profile-status-toggle" class="text-xs font-black text-emerald-400 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/50">● ONLINE</button>
+                </div>
+            </div>
+
+            <!-- 🪙 BILLETERA Y ESTADO KYC -->
+            <div class="w-full bg-neutral-900 border border-[#00f3ff]/30 rounded-2xl p-4 mb-5 shadow-inner">
+                <div class="flex items-center justify-between mb-3 border-b border-neutral-800 pb-3">
+                    <div>
+                        <h4 class="text-[10px] text-[#00f3ff] font-black uppercase tracking-widest" id="prof-alpha-title">BILLETERA $ALPHA</h4>
+                        <p class="text-xl font-black text-[#ffb703]" id="prof-alpha-balance">0 $ALPHA</p>
+                    </div>
+                    <button onclick="app.openCatalogPackages()" class="bg-[#00f3ff]/20 border border-[#00f3ff] text-[#00f3ff] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase hover:bg-[#00f3ff]/40 transition">
+                        <i class="fa-solid fa-plus"></i> <span id="btn-recharge-text">RECARGAR</span>
+                    </button>
+                </div>
+                
+                <div class="flex flex-col gap-1">
+                    <h4 class="text-[10px] text-[#ff00ff] font-black uppercase tracking-widest" id="txt-kyc-title">ESTADO KYC (+18)</h4>
+                    <p id="prof-kyc-status" class="text-xs font-black uppercase text-neutral-400">NO VERIFICADO ⚠️</p>
+                    <p id="prof-kyc-desc" class="text-[9px] text-neutral-500 font-bold mt-0.5">Verifica tu documento oficial para publicar y monetizar.</p>
+                    <button id="btn-verify-kyc" onclick="app.openKYCModal()" class="w-full bg-[#ff00ff] hover:bg-[#ff00ff]/80 text-black font-black py-2 px-4 rounded-xl text-[10px] shadow-[0_0_10px_rgba(255,0,255,0.4)] transition uppercase mt-2 hidden">VERIFICAR CUENTA AHORA</button>
+                </div>
+            </div>
+
+            <!-- 🌟 GESTIÓN DE LOS 10 SLOTS (CONFIGURACIÓN Y GUARDADO COMPLETO) -->
+            <div class="w-full bg-neutral-900 border border-[#ffb703]/30 rounded-2xl p-4 mb-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="text-xs font-black text-[#ffb703] uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-layer-group"></i> Gestión de los 10 Slots
+                    </h4>
+                    <button onclick="app.openSlotsModal()" class="bg-[#ffb703]/20 border border-[#ffb703] text-[#ffb703] px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase">Editar Slots</button>
+                </div>
+                <p class="text-[10px] text-neutral-400">Tus 10 slots personalizados quedan guardados en tu perfil de manera persistente.</p>
+            </div>
+
+            <!-- 🌟 HERRAMIENTAS DE CREADOR / FAVORITOS -->
+            <div id="prof-creator-tools" class="w-full mb-5">
+                <button onclick="app.openFavoritesModal()" class="w-full bg-[#00f3ff] text-black hover:bg-[#00f3ff]/80 font-black py-3 rounded-xl text-xs shadow-[0_0_15px_rgba(0,243,255,0.4)] transition uppercase tracking-wider flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-star"></i> <span id="txt-edit-tips">MIS CREADORES FAVORITOS</span>
+                </button>
+                <div id="prof-creator-subscription-box" class="hidden mt-3 bg-gradient-to-r from-neutral-900 to-black border border-[#ff00ff]/50 rounded-2xl p-4">
+                    <h4 class="text-[10px] font-black text-[#ff00ff] uppercase tracking-widest mb-1" id="txt-b2b-title">MEMBRESÍA CREADOR B2B</h4>
+                    <p class="text-[9px] text-neutral-400 mb-3" id="txt-b2b-desc">Desbloquea la edición de tu Tip Menu y monetización activa. ¡Un mes gratis!</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="app.subscribeCreatorTier('soldier_creator')" class="bg-neutral-800 border border-neutral-600 text-white hover:border-[#ff00ff] px-2 py-2 rounded-xl text-[9px] font-black uppercase transition"><span id="txt-soldier-title">SOLDIER CREATOR</span> <br><span class="text-[#ff00ff]">$4.99/mes</span></button>
+                        <button onclick="app.subscribeCreatorTier('icon_creator')" class="bg-neutral-800 border border-neutral-600 text-white hover:border-[#ff00ff] px-2 py-2 rounded-xl text-[9px] font-black uppercase transition"><span id="txt-icon-title">ICON CREATOR</span> <br><span class="text-[#ff00ff]">$7.99/mes</span></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-xs text-[#00f3ff] mb-2 font-bold tracking-wider uppercase" id="lbl-alias">NOMBRE DE USUARIO / ALIAS</label>
+                <input type="text" id="prof-alias" class="cyber-input text-base" placeholder="Tu alias VIP">
+            </div>
+
+            <div class="mb-5">
+                <label class="block text-xs text-[#ff00ff] mb-2 font-bold tracking-wider uppercase" id="lbl-bio">BIO / DESCRIPCIÓN VIP</label>
+                <textarea id="prof-bio" rows="3" class="cyber-input w-full text-base" placeholder="Escribe tu biografía..."></textarea>
+                <button onclick="app.saveProfile()" class="mt-3 w-full border-2 border-[#ff00ff] text-[#ff00ff] py-3 rounded-xl font-bold text-sm hover:bg-[#ff00ff]/20 transition uppercase tracking-wider" id="btn-save-bio">GUARDAR PERFIL</button>
+            </div>
+            <div class="pb-10"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: GESTIÓN DE LOS 10 SLOTS (EDITOR COMPLETO Y GUARDADO EN PERFIL) -->
+    <div id="modal-slots" class="hidden fixed inset-0 z-[125] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
+        <div class="glass-panel w-11/12 max-w-lg rounded-3xl p-6 relative flex flex-col border-2 border-[#ffb703] shadow-[0_0_25px_rgba(255,183,3,0.3)] max-h-[90vh] overflow-hidden">
+            <div class="flex items-center justify-between mb-3 pb-3 border-b border-[#ffb703]/30 shrink-0">
+                <h3 class="text-xl font-black text-[#ffb703] uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group"></i> Configurar 10 Slots
+                </h3>
+                <button onclick="app.closeSlotsModal()" class="bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:scale-110 transition"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <p class="text-xs text-neutral-300 mb-3 shrink-0">Personaliza tus 10 slots activos. Al pulsar guardar, se grabarán directamente en los ajustes de tu perfil.</p>
+            
+            <div class="flex-1 overflow-y-auto pr-1 space-y-3" id="slots-container-list"></div>
+
+            <div class="pt-3 border-t border-neutral-800 shrink-0 mt-3">
+                <button onclick="app.saveAllSlots()" class="w-full bg-[#ffb703] text-black font-black py-3 rounded-xl text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(255,183,3,0.5)]">
+                    <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar los 10 Slots en Perfil
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: DMs (BANDEJA DE ENTRADA Y CHATS INDIVIDUALES ESTILO TELEGRAM) -->
+    <div id="modal-chat" class="hidden fixed inset-0 z-[82] flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-lg h-[88vh] rounded-t-3xl flex flex-col relative border-b-0 overflow-hidden shadow-[0_-5px_20px_rgba(0,243,255,0.2)]">
+            <div class="bg-black bg-opacity-80 p-3.5 flex items-center justify-between border-b border-[#00f3ff]/60 shadow-[0_0_15px_rgba(0,243,255,0.1)]">
+                <div class="flex items-center gap-2">
+                    <button id="dm-back-btn" onclick="app.backToInbox()" class="hidden text-[#00f3ff] text-base px-2 py-1"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h3 id="crm-chat-title" class="font-bold text-white text-xs uppercase tracking-wider">DMs (MENSAJES DIRECTOS)</h3>
+                </div>
+                <button onclick="app.closeModals()" class="bg-red-600 rounded-full inline-flex items-center justify-center px-3 py-1.5 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 text-xs">
+                    <i class="fa-solid fa-arrow-left mr-1 text-xs"></i> <span class="btn-back-text">VOLVER</span>
+                </button>
+            </div>
+
+            <div id="dm-inbox-view" class="flex-1 overflow-y-auto p-3 space-y-2 bg-gradient-to-b from-transparent to-black/50">
+                <div class="text-center text-neutral-400 text-xs py-10 font-bold">Cargando conversaciones... ⏳</div>
+            </div>
+
+            <div id="dm-chat-view" class="hidden flex-1 flex flex-col overflow-hidden">
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-3 space-y-3 bg-gradient-to-b from-transparent to-black/50"></div>
+                <div id="crm-chat-preview-container" class="hidden px-3 py-2 bg-neutral-900/90 border-t border-neutral-800 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <img id="crm-chat-preview-img" class="w-10 h-10 object-cover rounded-lg hidden" alt="Preview"/>
+                        <video id="crm-chat-preview-video" class="w-10 h-10 object-cover rounded-lg hidden" muted></video>
+                        <span id="crm-chat-preview-name" class="text-[10px] text-[#00f3ff] font-bold truncate max-w-[200px]">Archivo adjunto</span>
+                    </div>
+                    <button onclick="app.clearChatMedia('crm')" class="text-red-400 hover:text-white text-xs px-2 py-1"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+                <div class="p-2.5 bg-[#050505] border-t border-neutral-800 flex items-center gap-2 pb-4 relative">
+                    <input type="file" id="crm-media-upload" class="hidden" onchange="app.handleChatMediaPreview(event, 'crm')">
+                    <button onclick="document.getElementById('crm-media-upload').click()" class="w-10 h-10 shrink-0 rounded-full bg-neutral-900 border border-[#00f3ff]/50 text-[#00f3ff] flex items-center justify-center text-sm"><i class="fa-solid fa-paperclip"></i></button>
+                    <input type="text" id="chat-input" class="flex-1 cyber-input rounded-full text-xs py-2.5 px-3 border-[#00f3ff] focus:border-[#00f3ff]" placeholder="Escribe un mensaje..." onkeypress="app.handleChatKeyPress(event)">
+                    <button onclick="app.sendChatMessage()" class="w-10 h-10 shrink-0 rounded-full bg-gradient-to-tr from-[#00f3ff] to-[#ff00ff] text-white flex items-center justify-center text-sm"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🛠️ MODAL: CENTRO DE AJUSTES GENERAL (BARRA LATERAL VERTICAL) -->
+    <div id="modal-settings" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
+        <div class="glass-panel w-11/12 max-w-2xl rounded-3xl p-6 relative flex flex-col border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] max-h-[90vh] overflow-hidden">
+            <div class="flex items-center justify-between mb-3 pb-3 border-b border-[#00f3ff]/30 shrink-0">
+                <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-sliders"></i> AJUSTES GENERALES
+                </h3>
+                <button onclick="app.closeSettingsModal()" class="bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:scale-110 transition"><i class="fa-solid fa-times"></i></button>
+            </div>
+
+            <!-- CONTENEDOR DE DISTRIBUCIÓN EN 2 COLUMNAS (SIDEBAR VERTICAL) -->
+            <div class="flex-1 flex flex-row overflow-hidden gap-3 min-h-0">
+                
+                <!-- SIDEBAR VERTICAL DE AJUSTES (IZQUIERDA) -->
+                <div class="w-32 sm:w-44 flex flex-col gap-1.5 overflow-y-auto pr-1 border-r border-neutral-800/80 shrink-0 scrollbar-none" id="settings-tabs-bar">
+                    <button onclick="app.switchSettingsTab('account')" id="tab-btn-account" class="w-full text-left px-2.5 py-2.5 rounded-xl border border-[#00f3ff] bg-[#00f3ff]/10 text-[#00f3ff] font-bold text-[11px] sm:text-xs uppercase tracking-wider transition settings-tab-active flex items-center gap-2">
+                        <i class="fa-solid fa-user-gear text-[#00f3ff] w-4"></i> Cuenta
+                    </button>
+                    <button onclick="app.switchSettingsTab('av')" id="tab-btn-av" class="w-full text-left px-2.5 py-2.5 rounded-xl border border-neutral-800 hover:border-neutral-700 bg-neutral-900 text-neutral-400 font-bold text-[11px] sm:text-xs uppercase tracking-wider transition flex items-center gap-2">
+                        <i class="fa-solid fa-video text-amber-400 w-4"></i> Hardware A/V
+                    </button>
+                    <button onclick="app.switchSettingsTab('wallet')" id="tab-btn-wallet" class="w-full text-left px-2.5 py-2.5 rounded-xl border border-neutral-800 hover:border-neutral-700 bg-neutral-900 text-neutral-400 font-bold text-[11px] sm:text-xs uppercase tracking-wider transition flex items-center gap-2">
+                        <i class="fa-solid fa-wallet text-blue-400 w-4"></i> Wallet
+                    </button>
+                    <button onclick="app.switchSettingsTab('contacts')" id="tab-btn-contacts" class="w-full text-left px-2.5 py-2.5 rounded-xl border border-neutral-800 hover:border-neutral-700 bg-neutral-900 text-neutral-400 font-bold text-[11px] sm:text-xs uppercase tracking-wider transition flex items-center gap-2">
+                        <i class="fa-solid fa-address-book text-[#ff00ff] w-4"></i> Contactos
+                    </button>
+                    <button onclick="app.switchSettingsTab('alphacoins')" id="tab-btn-alphacoins" class="w-full text-left px-2.5 py-2.5 rounded-xl border border-neutral-800 hover:border-neutral-700 bg-neutral-900 text-neutral-400 font-bold text-[11px] sm:text-xs uppercase tracking-wider transition flex items-center gap-2">
+                        <i class="fa-solid fa-coins text-[#ffb703] w-4"></i> AlphaCoins
+                    </button>
+                    <button onclick="app.switchSettingsTab('chats')" id="tab-btn-chats" class="w-full text-left px-2.5 py-2.5 rounded-xl border border-neutral-800 hover:border-neutral-700 bg-neutral-900 text-neutral-400 font-bold text-[11px] sm:text-xs uppercase tracking-wider transition flex items-center gap-2">
+                        <i class="fa-solid fa-comments text-emerald-400 w-4"></i> Chats
+                    </button>
+                </div>
+                
+                <!-- CONTENEDOR DERECHO CON SCROLL PARA PANELES DE CONFIGURACIÓN -->
+                <div class="flex-1 overflow-y-auto pl-1 sm:pl-3 space-y-4 text-xs sm:text-sm" id="settings-tab-content">
+                    
+                    <!-- 1. PESTAÑA: CUENTA & PERFIL -->
+                    <div id="settings-panel-account" class="space-y-4">
+                        <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl">
+                            <label class="block text-xs text-[#00f3ff] font-bold uppercase tracking-wider mb-1"><i class="fa-solid fa-user-pen mr-1"></i> Cambiar Alias</label>
+                            <input type="text" id="settings-username-input" class="cyber-input text-sm mb-2" placeholder="Nuevo alias VIP">
+                            <p id="name-change-warning" class="text-[10px] text-amber-400 mb-2 font-semibold">⚠️ Primer cambio libre. Modificaciones posteriores limitadas a 1 vez cada 30 días.</p>
+                            <button onclick="app.updateUsernameSettings()" class="w-full bg-[#00f3ff] text-black font-black py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(0,243,255,0.4)]">Actualizar Alias</button>
+                        </div>
+
+                        <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl">
+                            <label class="block text-xs text-[#ff00ff] font-bold uppercase tracking-wider mb-1"><i class="fa-solid fa-lock mr-1"></i> Cambiar Contraseña</label>
+                            <input type="password" id="settings-old-pass" placeholder="Contraseña actual" class="cyber-input text-sm mb-2">
+                            <input type="password" id="settings-new-pass" placeholder="Nueva contraseña (mín. 8 caracteres)" class="cyber-input text-sm mb-2">
+                            <input type="password" id="settings-confirm-pass" placeholder="Repetir nueva contraseña" class="cyber-input text-sm mb-2">
+                            <button onclick="app.updatePasswordSettings()" class="w-full bg-[#ff00ff] text-black font-black py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(255,0,255,0.4)]">Actualizar Contraseña</button>
+                        </div>
+
+                        <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-neutral-200 font-bold uppercase"><i class="fa-solid fa-moon text-[#ffb703] mr-1"></i> Tema Claro / Oscuro</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="theme-switch" class="sr-only peer" onchange="app.toggleTheme()">
+                                    <div class="w-12 h-6 bg-neutral-800 border border-neutral-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00f3ff] peer-checked:border-[#00f3ff] shadow-inner"></div>
+                                </label>
+                            </div>
+                            <div class="border-t border-neutral-800 pt-3 flex items-center justify-between">
+                                <span class="text-xs text-neutral-200 font-bold uppercase"><i class="fa-solid fa-signal mr-1"></i> Estado Operativo</span>
+                                <button onclick="app.toggleOnlineStatus()" id="settings-status-btn" class="bg-emerald-600/20 border border-emerald-500 text-emerald-400 px-3 py-1.5 rounded-xl text-xs font-black uppercase flex items-center gap-1.5">
+                                    <span id="settings-status-indicator" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span> 
+                                    <span id="settings-status-text">ONLINE</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. PESTAÑA: HARDWARE A/V -->
+                    <div id="settings-panel-av" class="hidden space-y-4">
+                        <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-3">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-camera mr-1"></i> Selector de Cámara</h4>
+                                <button onclick="app.refreshMediaDevicesList()" class="text-[10px] text-[#00f3ff] hover:underline flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i> Detectar</button>
+                            </div>
+                            <p class="text-[10px] text-neutral-400">Compatible con cámaras físicas (Frontal/Trasera) y virtuales (OBS VirtualCam, Lovense Connect).</p>
+                            <select id="settings-av-cam-source" class="cyber-input text-xs w-full bg-neutral-900"></select>
+                        </div>
+
+                        <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-3">
+                            <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-microphone mr-1"></i> Selector de Micrófono</h4>
+                            <select id="settings-av-mic-source" class="cyber-input text-xs w-full bg-neutral-900"></select>
+                        </div>
+
+                        <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-3">
+                            <h4 class="text-xs font-black text-[#ffb703] uppercase tracking-wider"><i class="fa-solid fa-volume-high mr-1"></i> Salida de Audio / Altavoces</h4>
+                            <select id="settings-av-speaker-source" class="cyber-input text-xs w-full bg-neutral-900">
+                                <option value="default">🔊 Altavoz Predeterminado del Sistema</option>
+                            </select>
+                        </div>
+
+                        <button onclick="app.applyGeneralAVSettings()" class="w-full bg-[#00f3ff] text-black font-black py-3 rounded-xl text-xs uppercase tracking-wider shadow-[0_0_12px_rgba(0,243,255,0.4)]">
+                            <i class="fa-solid fa-check mr-1"></i> Aplicar y Guardar Hardware
+                        </button>
+                    </div>
+
+                    <!-- 3. PESTAÑA: GESTIÓN DE LA WALLET -->
+                    <div id="settings-panel-wallet" class="hidden space-y-4">
+                        <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-3">
+                            <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-wallet mr-1"></i> Estado TON Connect</h4>
+                            <div class="p-3 bg-neutral-900 rounded-xl border border-neutral-800 flex justify-between items-center">
+                                <span class="text-xs text-neutral-300">Billetera Vinculada:</span>
+                                <span id="settings-wallet-address" class="text-xs font-mono text-[#00f3ff] font-bold">No conectada</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="app.connectWallet()" class="flex-1 bg-blue-600 text-white font-black py-2.5 rounded-xl text-xs uppercase shadow-md hover:bg-blue-500 transition">Conectar / Cambiar</button>
+                                <button onclick="app.openCatalogPackages()" class="flex-1 bg-[#ffb703] text-black font-black py-2.5 rounded-xl text-xs uppercase shadow-md hover:bg-amber-400 transition">Recargar Saldo</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. PESTAÑA: CONTACTOS & DIRECTORIO -->
+                    <div id="settings-panel-contacts" class="hidden space-y-4">
+                        <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-3">
+                            <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-user-plus mr-1"></i> Agregar Contacto</h4>
+                            <div class="flex gap-2">
+                                <input type="text" id="settings-contact-input" placeholder="ID o Telegram Username..." class="cyber-input text-xs flex-1">
+                                <button onclick="app.addContactFromSettings()" class="bg-[#00f3ff] text-black font-black px-4 rounded-xl text-xs uppercase">Agregar</button>
+                            </div>
+                        </div>
+                        <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl">
+                            <h4 class="text-xs font-black text-white uppercase tracking-wider mb-2"><i class="fa-solid fa-address-book mr-1"></i> Directorio Rápido</h4>
+                            <div id="settings-contacts-list" class="space-y-2 max-h-48 overflow-y-auto">
+                                <div class="text-center text-neutral-500 text-xs py-3">Cargando directorio...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. PESTAÑA: REGISTRO DE ALPHACOINS -->
+                    <div id="settings-panel-alphacoins" class="hidden space-y-4">
+                        <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl flex justify-between items-center">
+                            <div>
+                                <span class="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">Balance Actual</span>
+                                <h3 class="text-2xl font-black text-[#ffb703] wallet-balance-val">0 $ALPHA</h3>
+                            </div>
+                            <button onclick="app.openCatalogPackages()" class="bg-[#ffb703]/20 border border-[#ffb703] text-[#ffb703] px-3 py-1.5 rounded-xl text-xs font-black uppercase hover:bg-[#ffb703]/30">Adquirir Más</button>
+                        </div>
+
+                        <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-2">
+                            <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-wider mb-1"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Historial de Movimientos</h4>
+                            <div id="settings-alphacoins-history" class="space-y-2 max-h-56 overflow-y-auto">
+                                <div class="text-center text-neutral-500 text-xs py-4">No hay transacciones recientes registradas.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 6. PESTAÑA: AJUSTES DE CHATS & NOTIFICACIONES -->
+                    <div id="settings-panel-chats" class="hidden space-y-4">
+                        <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-neutral-200 font-bold uppercase"><i class="fa-solid fa-bell text-[#00f3ff] mr-1"></i> Sonido en Mensajes</span>
+                                <input type="checkbox" id="settings-chat-sound" class="w-4 h-4 accent-[#00f3ff]" checked>
+                            </div>
+                            <div class="border-t border-neutral-800 pt-3 flex items-center justify-between">
+                                <span class="text-xs text-neutral-200 font-bold uppercase"><i class="fa-solid fa-mobile mr-1"></i> Vibración Háptica</span>
+                                <input type="checkbox" id="settings-chat-haptic" class="w-4 h-4 accent-[#ff00ff]" checked>
+                            </div>
+                            <div class="border-t border-neutral-800 pt-3">
+                                <button onclick="app.clearChatCache()" class="w-full bg-red-950/40 border border-red-800 hover:bg-red-900/40 text-red-300 py-2.5 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-trash-can"></i> Limpiar Caché Local de Mensajes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🎥 MODAL: SALAS DE VIDEOCHAT CATEGORIZADAS (INTEGRADO DIRECTO) -->
+    <div id="modal-video-rooms" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
+        <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-lg h-[80vh] flex flex-col shadow-[0_0_25px_rgba(0,243,255,0.3)]">
+            <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#00f3ff]/30">
+                <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-video mr-2"></i> SALAS DE VIDEOCHAT</h3>
+                <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
+            </div>
+            <div class="flex gap-2 mb-3 overflow-x-auto pb-1 shrink-0 scrollbar-none">
+                <button onclick="app.filterVideoRooms('all')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Todas</button>
+                <button onclick="app.filterVideoRooms('letter_and_gear')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Letter and gear</button>
+                <button onclick="app.filterVideoRooms('alpha_clothes')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Alpha clothes</button>
+                <button onclick="app.filterVideoRooms('sweat_and_thongs')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Sweat and thongs</button>
+                <button onclick="app.filterVideoRooms('slam')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Slam</button>
+                <button onclick="app.filterVideoRooms('party_time')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Party time</button>
+            </div>
+            <div id="video-rooms-list" class="flex-1 overflow-y-auto space-y-3 pr-1">
+                <div class="text-center text-neutral-400 text-xs py-10 font-bold">Cargando salas activas... ⏳</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CATÁLOGO DE RANGOS -->
+    <div id="modal-catalog" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
+        <div class="glass-panel w-11/12 max-w-lg h-[85vh] rounded-3xl p-0 flex flex-col relative border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] overflow-hidden">
+            <div class="p-4 border-b border-[#00f3ff]/30 flex justify-between items-center bg-black/60">
+                <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider" id="cat-title"><i class="fa-solid fa-store mr-2"></i> UPGRADE PLAN</h3>
+                <button onclick="app.closeModals()" class="bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:scale-110 transition shadow-[0_0_10px_red]"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4" id="catalog-packages-list"></div>
+        </div>
+    </div>
+
+    <!-- 🌐 MODAL: COMUNIDADES OFICIALES -->
+    <div id="modal-communities-links" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
+        <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-sm flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
+            <h3 class="text-xl font-black text-[#00f3ff] mb-2 text-center tracking-widest uppercase"><i class="fa-solid fa-users mr-2"></i> <span id="com-eco-title">ECOSISTEMA</span></h3>
+            <p class="text-xs text-neutral-300 text-center mb-6" id="com-eco-desc">Únete a nuestros canales y grupos oficiales.</p>
+            
+            <div class="space-y-3 overflow-y-auto max-h-[50vh] pr-1">
+                <button onclick="app.openLink('https://t.me/+66WhSKtHWI5kZTkx')" class="w-full bg-black border border-amber-500 text-amber-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(245,158,11,0.4)] transition hover:bg-amber-500/20 active:scale-95 text-center leading-tight">
+                    <i class="fa-solid fa-globe text-lg"></i> 🔱♨️Alpha World♨️🔱
+                </button>
+                <button onclick="app.openLink('https://t.me/+7NhKBpvAE_dkODgx')" class="w-full bg-black border border-[#ff00ff] text-[#ff00ff] font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(255,0,255,0.4)] transition hover:bg-ff00ff/20 active:scale-95 text-center leading-tight">
+                    <i class="fa-solid fa-champagne-glasses text-lg"></i> PIG'BROS 🚀PartyN'Play🚀VIP • 💬CHAT & VC📽
+                </button>
+                <button onclick="app.openLink('https://t.me/+GmnxDHRiA5A2M2Ix')" class="w-full bg-black border border-[#00f3ff] text-[#00f3ff] font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(0,243,255,0.4)] transition hover:bg-[#00f3ff]/20 active:scale-95 text-center leading-tight">
+                    <i class="fa-solid fa-lock text-lg"></i> ⚜️🔐The Bunker CHat 🔐⚜️
+                </button>
+                <button onclick="app.openLink('https://t.me/+Hst6ckYRUM02NmQx')" class="w-full bg-black border border-purple-500 text-purple-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(168,85,247,0.4)] transition hover:bg-purple-500/20 active:scale-95 text-center leading-tight">
+                    <i class="fa-solid fa-masks-theater text-lg"></i> BETA HOUSE
+                </button>
+                <button onclick="app.openLink('https://t.me/+N0BuW-guPM42OGNh')" class="w-full bg-black border border-red-500 text-red-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(239,68,68,0.4)] transition hover:bg-red-500/20 active:scale-95 text-center leading-tight">
+                    <i class="fa-solid fa-fire-flame-curved text-lg"></i> EUPHORIA
+                </button>
+            </div>
+            <button onclick="document.getElementById('modal-communities-links').classList.add('hidden')" class="text-neutral-400 hover:text-white font-bold mt-6 uppercase text-sm w-full text-center transition" id="btn-eco-close">CERRAR</button>
+        </div>
+    </div>
+
+    <!-- 👤 MODAL: PERFIL PÚBLICO DEL CREADOR -->
+    <div id="modal-creator-profile" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
+        <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-md h-[85vh] flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)] relative">
+            <button onclick="app.closeModals()" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1 z-10"><i class="fa-solid fa-times text-xl"></i></button>
+            
+            <div class="absolute top-4 left-4 z-20">
+                <button onclick="document.getElementById('creator-options-menu').classList.toggle('hidden')" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-ellipsis-vertical text-xl"></i></button>
+                <div id="creator-options-menu" class="hidden absolute left-0 mt-2 w-36 bg-black border border-neutral-700 rounded-xl shadow-xl z-30 flex flex-col overflow-hidden">
+                    <button id="btn-block-creator-action" class="px-4 py-3 text-xs font-black text-red-400 hover:bg-neutral-900 text-left w-full"><i class="fa-solid fa-ban mr-1"></i> Bloquear</button>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-center text-center mb-3 shrink-0 mt-2">
+                <div class="relative w-20 h-20 rounded-full border-2 border-[#00f3ff] overflow-hidden bg-black mb-2 flex items-center justify-center shadow-[0_0_15px_rgba(0,243,255,0.4)]">
+                    <img id="creator-prof-avatar" src="" class="w-full h-full object-cover hidden" onerror="this.style.display='none'">
+                    <i id="creator-prof-default-icon" class="fa-solid fa-user text-2xl text-[#00f3ff]"></i>
+                    <div id="creator-prof-dot" class="absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-black hidden"></div>
+                </div>
+                <h3 id="creator-prof-name" class="text-xl font-black text-white uppercase tracking-wider truncate w-full px-4">@CREATOR</h3>
+                <span id="creator-prof-status" class="text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border">OFFLINE</span>
+                <span class="text-[10px] font-bold text-neutral-400 mt-1 uppercase tracking-widest">Operativo en el Ecosistema Alfa</span>
+            </div>
+            
+            <div id="creator-prof-bio" class="text-xs text-neutral-300 bg-black/50 border border-neutral-800 rounded-xl p-3 mb-3 text-center shrink-0">Cargando biografía...</div>
+            
+            <div class="flex gap-2 mb-3 shrink-0">
+                <button id="btn-creator-tip-action" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-coins"></i> Enviar Tip
+                </button>
+                <button id="btn-creator-chat-action" class="flex-1 bg-[#00f3ff] hover:bg-[#00f3ff]/80 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-comments"></i> Chat
+                </button>
+            </div>
+
+            <div class="flex gap-2 mb-3 shrink-0">
+                <button id="btn-profile-follow" class="flex-1 bg-[#ff00ff] hover:bg-fuchsia-500 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-user-plus"></i> Seguir
+                </button>
+            </div>
+            
+            <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-widest mb-2 shrink-0">Publicaciones del Creador</h4>
+            <div id="creator-prof-posts" class="flex-1 overflow-y-auto space-y-3 pr-2 pb-6">
+                <div class="text-center text-neutral-500 text-xs py-4">Cargando publicaciones...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: CHAT GLOBAL & RADAR LATERAL DERECHO -->
+    <div id="modal-global-chat" class="hidden fixed inset-0 z-[82] flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-lg h-[88vh] rounded-t-3xl flex flex-col relative border-b-0 overflow-hidden shadow-[0_-5px_20px_rgba(255,0,255,0.2)]">
+            <div class="bg-black bg-opacity-80 p-3.5 flex items-center justify-between border-b border-[#ff00ff]/60 shadow-[0_0_15px_rgba(255,0,255,0.1)]">
+                <div class="flex items-center gap-2">
+                    <button onclick="app.openSupport()" class="w-8 h-8 rounded-xl bg-[#ff00ff]/20 border border-[#ff00ff] flex items-center justify-center text-[#ff00ff] hover:scale-110 transition shadow-[0_0_10px_#ff00ff]" title="Soporte Admin">
+                        <i class="fa-solid fa-shield-halved text-xs"></i>
+                    </button>
+                    <div>
+                        <h3 id="global-chat-title" class="font-bold text-white text-xs uppercase tracking-wider">CHAT GLOBAL</h3>
+                        <p class="text-[9px] text-cyan-400 uppercase tracking-widest font-extrabold flex items-center gap-1"><i class="fa-solid fa-circle text-[4px] animate-pulse"></i> Búnker Live</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <div class="bg-neutral-900/90 border border-emerald-500/60 px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                        <span class="w-2 h-2 rounded-full neon-green-dot animate-ping"></span>
+                        <span id="txt-users-online-label" class="text-[9px] font-black text-emerald-300 uppercase tracking-wider">USERS ONLINE</span>
+                        <span id="online-users-count" class="text-[10px] font-black text-white bg-emerald-500/20 px-1.5 py-0.5 rounded border border-emerald-500/40">1</span>
+                    </div>
+                    <button onclick="app.closeModals()" class="bg-red-600 rounded-full inline-flex items-center justify-center px-3 py-1.5 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 text-xs">
+                        <i class="fa-solid fa-arrow-left mr-1 text-xs"></i> <span class="btn-back-text">VOLVER</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 flex overflow-hidden">
+                <div class="flex-1 flex flex-col min-w-0">
+                    <div id="global-chat-messages" class="flex-1 overflow-y-auto p-3 space-y-3 bg-gradient-to-b from-transparent to-black/50"></div>
+
+                    <div id="global-chat-preview-container" class="hidden px-3 py-2 bg-neutral-900/90 border-t border-neutral-800 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <img id="global-chat-preview-img" class="w-10 h-10 object-cover rounded-lg hidden" alt="Preview"/>
+                            <video id="global-chat-preview-video" class="w-10 h-10 object-cover rounded-lg hidden" muted></video>
+                            <span id="global-chat-preview-name" class="text-[10px] text-[#00f3ff] font-bold truncate max-w-[200px]">Archivo adjunto</span>
+                        </div>
+                        <button onclick="app.clearChatMedia('global')" class="text-red-400 hover:text-white text-xs px-2 py-1"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+
+                    <div class="p-2.5 bg-[#050505] border-t border-neutral-800 flex items-center gap-2 pb-4 relative">
+                        <div id="global-media-menu" class="hidden absolute bottom-14 left-2 bg-neutral-900 border border-[#00f3ff] rounded-2xl p-2 shadow-[0_0_20px_rgba(0,243,255,0.3)] flex flex-col gap-1.5 z-50 w-48">
+                            <button id="btn-menu-photo" onclick="app.triggerGlobalMediaUpload('image/*')" class="flex items-center gap-2.5 text-xs text-white hover:bg-[#00f3ff]/20 px-3 py-2 rounded-xl transition text-left font-bold"><i class="fa-solid fa-image text-[#00f3ff]"></i> Imagen / Foto</button>
+                            <button id="btn-menu-video" onclick="app.triggerGlobalMediaUpload('video/*')" class="flex items-center gap-2.5 text-xs text-white hover:bg-[#00f3ff]/20 px-3 py-2 rounded-xl transition text-left font-bold"><i class="fa-solid fa-video text-[#ff00ff]"></i> Video Corto</button>
+                            <button id="btn-menu-audio" onclick="app.triggerGlobalMediaUpload('audio/*')" class="flex items-center gap-2.5 text-xs text-white hover:bg-[#00f3ff]/20 px-3 py-2 rounded-xl transition text-left font-bold"><i class="fa-solid fa-microphone text-[#ffb703]"></i> Nota de Voz</button>
+                            <button id="btn-menu-selfie" onclick="app.startGlobalSelfieCam()" class="flex items-center gap-2.5 text-xs text-white hover:bg-[#00f3ff]/20 px-3 py-2 rounded-xl transition text-left font-bold"><i class="fa-solid fa-camera-retro text-emerald-400"></i> Video Selfie</button>
+                        </div>
+
+                        <button onclick="document.getElementById('global-media-menu').classList.toggle('hidden')" class="w-10 h-10 shrink-0 rounded-full bg-neutral-900 border border-[#00f3ff]/50 text-[#00f3ff] flex items-center justify-center hover:bg-[#00f3ff]/20 transition shadow-[0_0_10px_rgba(0,243,255,0.3)] text-sm" title="Opciones Multimedia">
+                            <i class="fa-solid fa-paperclip"></i>
+                        </button>
+                        <input type="file" id="global-media-upload" class="hidden" onchange="app.handleChatMediaPreview(event, 'global')">
+                        
+                        <input type="text" id="global-chat-input" class="flex-1 cyber-input rounded-full text-xs py-2.5 px-3 border-[#00f3ff] focus:border-[#00f3ff]" placeholder="Escribe en el chat global..." onkeypress="app.handleGlobalChatKeyPress(event)">
+                        
+                        <button onclick="app.sendGlobalChatMessage()" class="w-10 h-10 shrink-0 rounded-full bg-gradient-to-tr from-[#ff00ff] to-[#00f3ff] text-white flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-[0_0_12px_rgba(255,0,255,0.5)] text-sm">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <aside id="radar-lateral-bunker" class="w-24 sm:w-28 bg-neutral-950/90 border-l border-[#00f3ff]/30 flex flex-col p-2 overflow-y-auto shrink-0 shadow-inner">
+                    <div class="text-[9px] font-black text-[#00f3ff] uppercase mb-2 text-center tracking-wider border-b border-[#00f3ff]/20 pb-1" id="txt-radar-title">
+                        <i class="fa-solid fa-satellite-dish mr-0.5 animate-pulse"></i> RADAR
+                    </div>
+                    <div id="online-users-chips" class="flex flex-col gap-1.5 text-[10px]"></div>
+                </aside>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL LIGHTBOX PARA ZOOM DE IMÁGENES Y REPRODUCCIÓN DE VIDEOS -->
+    <div id="media-lightbox-modal" class="hidden fixed inset-0 z-[250] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-4">
+        <button onclick="app.closeLightbox()" class="absolute top-6 right-6 text-white bg-red-600 rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg shadow-[0_0_15px_red] z-50">
+            <i class="fa-solid fa-times"></i>
+        </button>
+        <div class="relative w-full max-w-4xl max-h-[85vh] flex items-center justify-center">
+            <img id="lightbox-img" class="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl hidden" alt="Lightbox Image">
+            <video id="lightbox-video" class="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl hidden" controls autoplay playsinline></video>
+        </div>
+    </div>
+
+    <!-- 🎥 CONTENEDOR FLOTANTE VIDEO BÚNKER / MULTIVIDEOCHAT -->
+    <div id="floating-video-bunker" class="hidden fixed inset-0 z-[150] bg-[#050505] flex flex-col transition-transform duration-300">
+        <div id="video-drag-handle" class="hidden w-full h-8 bg-neutral-900 border-b border-[#00f3ff]/50 flex items-center justify-center cursor-move touch-none relative z-50 shadow-md">
+            <div class="w-10 h-1.5 bg-[#00f3ff]/50 rounded-full"></div>
+            <button onclick="app.leaveVideoBunker()" class="absolute right-2 text-red-500 hover:text-red-400 text-xs font-bold p-1"><i class="fa-solid fa-times"></i></button>
+        </div>
+
+        <div class="relative flex-1 flex overflow-hidden min-h-[400px] w-full">
+            <div class="flex-1 relative flex items-center justify-center bg-black min-h-[400px] w-full">
+                <span id="video-badge" class="absolute top-3 left-3 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase">PREVISUALIZACIÓN</span>
+                <video id="bunker-webcam-feed" class="w-full h-full object-cover hidden" playsinline autoplay muted></video>
+                <div id="cam-loading-placeholder" class="text-center text-neutral-500">
+                    <i class="fa-solid fa-camera text-4xl mb-2 animate-pulse"></i>
+                    <p class="text-xs font-bold uppercase tracking-wider">Cámara en espera...</p>
+                </div>
+            </div>
+
+            <aside class="w-24 sm:w-28 bg-black/80 border-l border-neutral-800 p-2 flex flex-col overflow-y-auto shrink-0">
+                <span class="text-[8px] font-black text-amber-400 uppercase mb-2 tracking-widest text-center">EN VIVO</span>
+                <div id="bunker-video-active-members" class="flex flex-col gap-1 text-[9px] text-neutral-300"></div>
+            </aside>
+        </div>
+
+        <div id="video-controls-bar" class="p-3 bg-neutral-950 border-t border-neutral-800 flex items-center justify-center gap-3 relative z-40">
+            <button id="btn-toggle-mic" onclick="app.toggleMic()" class="w-11 h-11 rounded-full bg-neutral-800 border border-neutral-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-microphone"></i></button>
+            <button id="btn-toggle-cam" onclick="app.toggleCam()" class="w-11 h-11 rounded-full bg-neutral-800 border border-neutral-600 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-video"></i></button>
+            <button onclick="app.openAVSettings()" class="w-11 h-11 rounded-full bg-neutral-800 border border-neutral-600 text-[#00f3ff] flex items-center justify-center text-lg"><i class="fa-solid fa-sliders"></i></button>
+            <button id="btn-go-live" onclick="app.startLiveTransmission()" class="px-4 py-2 bg-red-600 text-white text-xs font-black uppercase rounded-full shadow-[0_0_10px_red]">TRANSMITIR</button>
+            <button id="btn-cancel-stream" onclick="app.cancelLiveTransmission()" class="hidden px-4 py-2 bg-amber-500 text-black text-xs font-black uppercase rounded-full">DETENER</button>
+            <button onclick="app.toggleMinimizeVideo()" class="w-11 h-11 rounded-full bg-neutral-800 text-white flex items-center justify-center"><i id="icon-minimize" class="fa-solid fa-compress"></i></button>
+            <button onclick="app.leaveVideoBunker()" class="w-11 h-11 rounded-full bg-red-800 text-white flex items-center justify-center"><i class="fa-solid fa-phone-slash"></i></button>
+        </div>
+
+        <div id="pip-controls" class="hidden absolute bottom-2 right-2 gap-2 z-50">
+            <button onclick="app.toggleMinimizeVideo()" class="w-10 h-10 rounded-full bg-black/80 border border-[#00f3ff] text-[#00f3ff] flex items-center justify-center backdrop-blur-md shadow-lg font-bold text-lg">
+                <i class="fa-solid fa-expand"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL AJUSTES A/V RÁPIDOS VIDEO BÚNKER -->
+    <div id="modal-av-settings" class="hidden fixed inset-0 z-[160] flex items-center justify-center bg-black/90 backdrop-blur-sm">
+        <div class="bg-neutral-900 border border-[#00f3ff] rounded-2xl p-5 w-11/12 max-w-sm space-y-4">
+            <h4 class="text-sm font-black text-[#00f3ff] uppercase tracking-wider text-center">Configuración de Cámara y Audio</h4>
+            <div>
+                <label class="text-[10px] text-neutral-400 font-bold uppercase block mb-1">Cámara</label>
+                <select id="setting-cam-source" class="cyber-input text-xs w-full"></select>
+            </div>
+            <div>
+                <label class="text-[10px] text-neutral-400 font-bold uppercase block mb-1">Micrófono</label>
+                <select id="setting-mic-source" class="cyber-input text-xs w-full"></select>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="app.closeAVSettings()" class="w-1/2 py-2 rounded-xl bg-neutral-800 text-white text-xs font-bold uppercase">Cerrar</button>
+                <button onclick="app.applyAVSettings()" class="w-1/2 py-2 rounded-xl bg-[#00f3ff] text-black text-xs font-black uppercase shadow-[0_0_10px_#00f3ff]">Aplicar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CANVAS PARA FUEGOS ARTIFICIALES -->
+    <canvas id="fireworks-canvas" class="fixed inset-0 pointer-events-none z-[200] hidden"></canvas>
+    
+    <!-- 🛡️ SECUENCIA DE CARGA v2 — ORDEN ESTRICTO, SIN defer/async.
+         Eliminados: js/security.js, js/api.js, js/chat.js (v1 inseguros, sustituidos por los módulos v2). -->
+    <!-- 1 -->  <script src="js/config.js?v=50"></script>
+    <!-- 2 -->  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+                <script src="https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js"></script>
+    <!-- 3 -->  <script src="js/translations.js?v=50"></script>
+                <script src="js/translations_patch.js?v=50"></script>
+    <!-- 4 -->  <script src="js/hybrid_bridge.js?v=50"></script>
+    <!-- 5 -->  <script src="js/media_manager.js?v=50"></script>
+    <!-- 6 -->  <script src="js/api_v2.js?v=50"></script>
+    <!-- 7 -->  <script src="js/chat_v2.js?v=50"></script>
+    <!-- 8 -->  <script src="js/ui_bridge.js?v=50"></script>
+    <!-- 9 -->  <script src="js/webrtc_room.js?v=50"></script>
+    <!-- 10 --> <script src="js/app.js?v=50"></script>
+    <!-- 11 --> <script src="js/app_secure.js?v=50"></script>
+    
+    <!-- SCRIPT NATIVO: CONTROL DE ARRASTRE PiP -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const bunker = document.getElementById('floating-video-bunker');
+            const handle = document.getElementById('video-drag-handle');
+            let isDragging = false, startX, startY, initialX, initialY;
+
+            if(handle && bunker) {
+                handle.addEventListener('touchstart', dragStart, {passive: false});
+                handle.addEventListener('mousedown', dragStart);
+
+                function dragStart(e) {
+                    if (!bunker.classList.contains('pip-mode')) return;
+                    isDragging = true;
+                    const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+                    
+                    const rect = bunker.getBoundingClientRect();
+                    initialX = rect.left;
+                    initialY = rect.top;
+                    startX = clientX;
+                    startY = clientY;
+                    
+                    document.addEventListener('touchmove', drag, {passive: false});
+                    document.addEventListener('touchend', dragEnd);
+                    document.addEventListener('mousemove', drag);
+                    document.addEventListener('mouseup', dragEnd);
+                }
+
+                function drag(e) {
+                    if (!isDragging) return;
+                    e.preventDefault();
+                    const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+                    
+                    const dx = clientX - startX;
+                    const dy = clientY - startY;
+                    
+                    bunker.style.left = `${initialX + dx}px`;
+                    bunker.style.top = `${initialY + dy}px`;
+                    bunker.style.bottom = 'auto'; 
+                    bunker.style.right = 'auto';  
+                    bunker.style.transform = 'none'; 
+                }
+
+                function dragEnd() {
+                    isDragging = false;
+                    document.removeEventListener('touchmove', drag);
+                    document.removeEventListener('touchend', dragEnd);
+                    document.removeEventListener('mousemove', drag);
+                    document.removeEventListener('mouseup', dragEnd);
+                }
+            }
+        });
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('[SW] Registrado:', reg.scope))
+                    .catch(err => console.warn('[SW] Error al registrar:', err));
+            });
+        }
+    </script>
+</body>
+</html>

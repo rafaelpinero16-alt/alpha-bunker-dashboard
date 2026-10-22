@@ -1,0 +1,86 @@
+/**
+ * css/hybrid.css — Complemento de style.css para la app híbrida. Cargar DESPUÉS de style.css.
+ *  - Safe areas: Telegram ≥8.0 expone --tg-safe-area-inset-* y --tg-content-safe-area-inset-*
+ *    (pantalla completa, notch, barra de Telegram). En APK/Web se usa env(safe-area-inset-*),
+ *    que requiere <meta name="viewport" content="…, viewport-fit=cover">.
+ *  - Altura estable: --tg-viewport-stable-height evita saltos al abrir el teclado en TMA.
+ *  - Estilos de diálogos/formularios de ui_bridge.js y mosaicos de webrtc_room.js.
+ */
+:root {
+  --ab-safe-top: max(env(safe-area-inset-top, 0px), calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)));
+  --ab-safe-bottom: max(env(safe-area-inset-bottom, 0px), calc(var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px)));
+  --ab-safe-left: max(env(safe-area-inset-left, 0px), var(--tg-safe-area-inset-left, 0px));
+  --ab-safe-right: max(env(safe-area-inset-right, 0px), var(--tg-safe-area-inset-right, 0px));
+  --ab-vh: var(--tg-viewport-stable-height, 100dvh);
+}
+
+body {
+  min-height: var(--ab-vh);
+  padding-top: var(--ab-safe-top);
+  padding-bottom: var(--ab-safe-bottom);
+  padding-left: var(--ab-safe-left);
+  padding-right: var(--ab-safe-right);
+  overscroll-behavior-y: none;
+}
+
+/* Los campos de texto deben poder seleccionarse aunque body tenga user-select:none. */
+input, textarea, select, [contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Modales y búnker de video respetan notch / barra inferior. */
+#floating-video-bunker,
+[id^="modal-"].fixed {
+  padding-top: var(--ab-safe-top);
+  padding-bottom: var(--ab-safe-bottom);
+}
+.fab-lang { bottom: calc(95px + var(--ab-safe-bottom)); }
+.watermark-footer { bottom: calc(4px + var(--ab-safe-bottom)); }
+
+[data-act] { cursor: pointer; }
+
+/* ---------- ui_bridge: diálogos y formularios ---------- */
+.ab-overlay {
+  position: fixed; inset: 0; z-index: 100000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(6px);
+  padding: calc(16px + var(--ab-safe-top)) 16px calc(16px + var(--ab-safe-bottom));
+}
+.ab-dialog {
+  width: 100%; max-width: 380px; max-height: 85vh; overflow-y: auto;
+  background: #0b0b10; border: 2px solid var(--neon-cyan); border-radius: 20px;
+  box-shadow: 0 0 25px rgba(0, 243, 255, 0.3); padding: 20px; color: #fff;
+}
+.ab-dialog-title { font-family: 'Orbitron', sans-serif; font-weight: 900; color: var(--neon-cyan); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; text-align: center; }
+.ab-dialog-msg { font-size: 0.95rem; color: #d4d4d8; margin-bottom: 14px; white-space: pre-line; text-align: center; }
+.ab-dialog-actions { display: flex; gap: 8px; margin-top: 8px; }
+.ab-btn { flex: 1; padding: 12px; border-radius: 12px; font-weight: 900; text-transform: uppercase; font-size: 0.8rem; background: #262626; border: 1px solid #404040; color: #fff; }
+.ab-btn-primary { background: var(--neon-cyan); border-color: var(--neon-cyan); color: #000; box-shadow: 0 0 12px rgba(0, 243, 255, 0.4); }
+.ab-field { display: block; margin-bottom: 10px; }
+.ab-field > span { display: block; font-size: 0.7rem; font-weight: 800; color: var(--neon-gold); text-transform: uppercase; margin-bottom: 4px; }
+.ab-input { padding: 10px 14px; font-size: 1rem; }
+.ab-form-error { min-height: 1em; color: var(--neon-red); font-size: 0.8rem; font-weight: 700; }
+
+/* ---------- mensajes de chat ---------- */
+.ab-msg-menu { position: absolute; top: 4px; right: 4px; z-index: 5; }
+.ab-msg-menu-btn { width: 26px; height: 26px; border-radius: 999px; background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 12px; opacity: 0.6; }
+.ab-msg-menu-btn:hover { opacity: 1; }
+.ab-msg-menu-list { position: absolute; right: 0; margin-top: 4px; min-width: 120px; background: #171717; border: 1px solid #404040; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+.ab-msg-menu-list.hidden { display: none; }
+.ab-msg-menu-list button { padding: 10px 14px; text-align: left; font-size: 0.75rem; font-weight: 800; }
+.ab-msg-menu-list button:hover { background: #262626; }
+.ab-msg-text { padding-right: 22px; }
+
+/* ---------- video: mosaicos remotos ---------- */
+.rv-tile { background: #000; border-radius: 12px; overflow: hidden; }
+.rv-label {
+  position: absolute; left: 8px; bottom: 8px; max-width: calc(100% - 16px);
+  padding: 2px 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.7);
+  font-size: 10px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#video-controls-bar { padding-bottom: calc(8px + var(--ab-safe-bottom)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tron-grid, .levitate, .animate-pulse { animation: none !important; }
+}

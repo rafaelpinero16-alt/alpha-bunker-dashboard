@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Alpha Bunker</string>
+    <string name="title_activity_main">Alpha Bunker</string>
+    <string name="package_name">com.alphabunker.app</string>
+    <string name="custom_url_scheme">com.alphabunker.app</string>
+</resources>

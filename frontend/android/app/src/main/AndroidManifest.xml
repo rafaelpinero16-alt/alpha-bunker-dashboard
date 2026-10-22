@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  android/app/src/main/AndroidManifest.xml — Alpha Bunker (Capacitor 6/7).
+  Reemplaza el generado por `npx cap add android`. El package/namespace se define en
+  android/app/build.gradle (namespace "com.alphabunker.app"), no aquí (AGP 8+).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ===================== PERMISOS ===================== -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Salas de video WebRTC (getUserMedia en la WebView) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- navigator.vibrate() → fallback de HapticFeedback fuera de Telegram -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- No exigir hardware: la app se instala también en dispositivos sin cámara -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.front" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <!-- ===================== VISIBILIDAD DE APPS (Android 11+) =====================
+         Necesario para que AppBridge.openLink / TON Connect puedan abrir Telegram,
+         Tonkeeper y otras wallets TON desde el APK. -->
+    <queries>
+        <!-- Telegram (tg://) y su paquete oficial -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tg" />
+        </intent>
+        <package android:name="org.telegram.messenger" />
+        <!-- TON Connect universal (tc://) y Tonkeeper -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tc" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tonkeeper" />
+        </intent>
+        <package android:name="com.ton_keeper" />
+        <!-- Enlaces https (t.me, app.tonkeeper.com, pasarelas externas) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+        <!-- Selector de cámara para <input type="file" capture> -->
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.VIDEO_CAPTURE" />
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:usesCleartextTraffic="false"
+        android:hardwareAccelerated="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:exported="true"
+            android:label="@string/title_activity_main"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:windowSoftInputMode="adjustResize">
+
+            <!-- Lanzador -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Deep links propios: alphabunker://tonconnect (retorno de wallet TON),
+                 alphabunker://login (retorno del login vía bot). Llegan a AppBridge como evento 'deeplink'. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="alphabunker" />
+            </intent-filter>
+        </activity>
+
+        <!-- Requerido por Capacitor para compartir/capturar archivos (cámara del <input file>) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+</manifest>
