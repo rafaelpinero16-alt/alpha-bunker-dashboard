@@ -1,7 +1,7 @@
 {
-  "url": "https://alpha-bunker-backend-production.up.railway.app",
+  "url": "https://alpha-bunker-backend.onrender.com",
   "name": "Alpha Bunker",
-  "iconUrl": "https://alpha-bunker-backend-production.up.railway.app/assets/logo-180.png",
-  "termsOfUseUrl": "https://alpha-bunker-backend-production.up.railway.app/terms.html",
-  "privacyPolicyUrl": "https://alpha-bunker-backend-production.up.railway.app/privacy.html"
+  "iconUrl": "https://alpha-bunker-backend.onrender.com/assets/logo-180.png",
+  "termsOfUseUrl": "https://alpha-bunker-backend.onrender.com/terms.html",
+  "privacyPolicyUrl": "https://alpha-bunker-backend.onrender.com/privacy.html"
 }

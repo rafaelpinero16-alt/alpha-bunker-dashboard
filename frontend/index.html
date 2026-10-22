@@ -79,7 +79,7 @@
     </div>
 
     <!-- BOTÓN DE IDIOMA GLOBAL -->
-    <button onclick="app.toggleLanguage()" class="fab-lang levitate z-[100] gpu-accelerated">
+    <button onclick="app.openLanguagePicker()" aria-label="Idioma / Language" data-i18n-aria="lang_title" class="fab-lang levitate z-[100] gpu-accelerated">
         <i class="fa-solid fa-language text-xl text-[#00f3ff] mb-0.5"></i>
         <span class="text-[11px] font-black text-[#00f3ff]" id="fab-lang-text">ES</span>
     </button>
@@ -99,49 +99,49 @@
 
         <div class="flex-1 p-3 space-y-2">
             <button onclick="app.openProfile(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#00f3ff] text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-user-gear text-[#00f3ff] text-base w-6"></i> <span id="sb-profile">Mi Perfil y Cuenta</span>
+                <i class="fa-solid fa-user-gear text-[#00f3ff] text-base w-6"></i> <span id="sb-profile" data-i18n="sb_profile">Mi Perfil y Cuenta</span>
             </button>
             <button onclick="app.openSettingsModal(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#00f3ff] text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-sliders text-[#ff00ff] text-base w-6"></i> <span id="sb-settings">Ajustes Generales</span>
+                <i class="fa-solid fa-sliders text-[#ff00ff] text-base w-6"></i> <span id="sb-settings" data-i18n="sb_settings">Ajustes Generales</span>
             </button>
             <button onclick="app.openSlotsModal(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#ffb703] text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-layer-group text-[#ffb703] text-base w-6"></i> <span id="sb-slots">Gestionar 10 Slots</span>
+                <i class="fa-solid fa-layer-group text-[#ffb703] text-base w-6"></i> <span id="sb-slots" data-i18n="sb_slots">Gestionar 10 Slots</span>
             </button>
             <button onclick="app.openVideoRoomsModal(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-amber-400 text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-video text-amber-400 text-base w-6"></i> <span id="sb-video-rooms">Videochat Rooms</span>
+                <i class="fa-solid fa-video text-amber-400 text-base w-6"></i> <span id="sb-video-rooms" data-i18n="sb_video_rooms">Videochat Rooms</span>
             </button>
             <button onclick="app.openGlobalChat(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#00f3ff] text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-comments text-[#00f3ff] text-base w-6"></i> <span id="sb-global-chat">Global Bunker Chat</span>
+                <i class="fa-solid fa-comments text-[#00f3ff] text-base w-6"></i> <span id="sb-global-chat" data-i18n="sb_global_chat">Global Bunker Chat</span>
             </button>
             <button onclick="app.openAVSettings(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-emerald-400 text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-sliders text-emerald-400 text-base w-6"></i> <span id="sb-av">Hardware A/V</span>
+                <i class="fa-solid fa-sliders text-emerald-400 text-base w-6"></i> <span id="sb-av" data-i18n="sb_av">Hardware A/V</span>
             </button>
             <button onclick="app.openSupport(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#ff00ff] text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-address-book text-[#ff00ff] text-base w-6"></i> <span id="sb-contacts">Contactos y DMs</span>
+                <i class="fa-solid fa-address-book text-[#ff00ff] text-base w-6"></i> <span id="sb-contacts" data-i18n="sb_contacts">Contactos y DMs</span>
             </button>
 
             <div class="border-t border-neutral-800 my-2 pt-2"></div>
 
             <button onclick="app.openSupport(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-circle-question text-cyan-400 text-sm w-5"></i> <span id="sb-ask">Hacer una pregunta</span>
+                <i class="fa-solid fa-circle-question text-cyan-400 text-sm w-5"></i> <span id="sb-ask" data-i18n="sb_ask">Hacer una pregunta</span>
             </button>
             <button onclick="app.openLink('https://t.me/Alpha_store_botbot'); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-file-lines text-cyan-400 text-sm w-5"></i> <span id="sb-faq">Preguntas Frecuentes (FAQ)</span>
+                <i class="fa-solid fa-file-lines text-cyan-400 text-sm w-5"></i> <span id="sb-faq" data-i18n="sb_faq">Preguntas Frecuentes (FAQ)</span>
             </button>
             <button onclick="app.openLink('https://t.me/Alpha_store_botbot'); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-graduation-cap text-cyan-400 text-sm w-5"></i> <span id="sb-learn">Aprende sobre Alpha App</span>
+                <i class="fa-solid fa-graduation-cap text-cyan-400 text-sm w-5"></i> <span id="sb-learn" data-i18n="sb_learn">Aprende sobre Alpha App</span>
             </button>
             <button onclick="location.href='privacy.html'" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-shield-cat text-cyan-400 text-sm w-5"></i> <span id="sb-privacy">Política de Privacidad</span>
+                <i class="fa-solid fa-shield-cat text-cyan-400 text-sm w-5"></i> <span id="sb-privacy" data-i18n="sb_privacy">Política de Privacidad</span>
             </button>
             <button onclick="location.href='terms.html'" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-file-contract text-cyan-400 text-sm w-5"></i> <span id="sb-terms">Términos de Servicio</span>
+                <i class="fa-solid fa-file-contract text-cyan-400 text-sm w-5"></i> <span id="sb-terms" data-i18n="sb_terms">Términos de Servicio</span>
             </button>
         </div>
 
         <div class="p-4 border-t border-neutral-800 bg-black/40">
             <button onclick="app.closeSidebar(); app.logout();" class="w-full bg-red-950/40 border border-red-800 text-red-300 py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-red-900/40 transition">
-                <i class="fa-solid fa-right-from-bracket"></i> <span id="sb-logout">Cerrar Sesión</span>
+                <i class="fa-solid fa-right-from-bracket"></i> <span id="sb-logout" data-i18n="sb_logout">Cerrar Sesión</span>
             </button>
         </div>
     </aside>
@@ -163,18 +163,18 @@
     <!-- 🛡️ VIEW -1: AGE CONSENT (+18) -->
     <div id="view-consent" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10 transition-opacity duration-500 gpu-accelerated">
         <i class="fa-solid fa-triangle-exclamation text-8xl text-[#ff3333] mb-6 drop-shadow-[0_0_20px_#ff3333] levitate"></i>
-        <h1 id="txt-warn-title" class="text-3d-red text-4xl text-center mb-3 leading-tight font-black">ADVERTENCIA</h1>
-        <h2 id="txt-warn-sub" class="text-2xl text-[#ff00ff] font-extrabold tracking-[0.2em] mb-8 text-center" style="text-shadow: 0 0 10px #ff00ff;">+18 ADULT CONTENT</h2>
+        <h1 id="txt-warn-title" data-i18n="warn_title" class="text-3d-red text-4xl text-center mb-3 leading-tight font-black">ADVERTENCIA</h1>
+        <h2 id="txt-warn-sub" data-i18n="warn_sub" class="text-2xl text-[#ff00ff] font-extrabold tracking-[0.2em] mb-8 text-center" style="text-shadow: 0 0 10px #ff00ff;">+18 CONTENIDO ADULTO</h2>
         <div class="glass-panel p-6 mb-8 max-w-sm text-center border-[#ff3333]">
-            <p id="txt-warn-p1" class="text-base text-gray-200 mb-4 font-semibold">Este espacio contiene material explícito y sexual.</p>
-            <p id="txt-warn-p2" class="text-base text-gray-300 font-medium">Al ingresar, confirmas bajo tu responsabilidad que eres mayor de edad (18+) y consientes visualizar este contenido (Safe Harbor Compliance).</p>
+            <p id="txt-warn-p1" data-i18n="warn_p1" class="text-base text-gray-200 mb-4 font-semibold">Este espacio contiene material explícito y sexual.</p>
+            <p id="txt-warn-p2" data-i18n="warn_p2" class="text-base text-gray-300 font-medium">Al ingresar, confirmas bajo tu responsabilidad que eres mayor de edad (18+) y consientes visualizar este contenido.</p>
         </div>
         <div class="w-full max-w-sm space-y-4">
             <button onclick="app.acceptConsent()" class="w-full btn-neon-magenta py-4 rounded-xl text-2xl font-black uppercase tracking-wider levitate">
-                <i class="fa-solid fa-check-circle mr-2"></i> <span id="btn-accept-text">ACEPTO / I ACCEPT</span>
+                <i class="fa-solid fa-check-circle mr-2"></i> <span id="btn-accept-text" data-i18n="btn_accept">ACEPTO</span>
             </button>
             <button onclick="app.exitApp()" class="w-full bg-transparent border-2 border-gray-600 text-gray-300 py-3.5 rounded-xl font-bold uppercase transition hover:text-white hover:border-white text-lg">
-                <i class="fa-solid fa-times mr-2"></i> <span id="btn-exit-text">SALIR / EXIT</span>
+                <i class="fa-solid fa-times mr-2"></i> <span id="btn-exit-text" data-i18n="btn_exit">SALIR</span>
             </button>
         </div>
     </div>
@@ -182,18 +182,18 @@
     <!-- 🛡️ VIEW -0.5: CAPTCHA OBLIGATORIO -->
     <div id="view-captcha" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10 transition-opacity duration-500 gpu-accelerated">
         <i class="fa-solid fa-shield-halved text-7xl text-[#00f3ff] mb-4 drop-shadow-[0_0_15px_#00f3ff] levitate"></i>
-        <h1 id="txt-cap-title" class="text-3d-cyan text-3xl text-center mb-3 leading-tight font-black">VERIFICACIÓN HUMANA</h1>
-        <p id="txt-cap-desc" class="text-sm text-gray-300 text-center mb-6 font-medium">Resuelve el código de seguridad para ingresar al Vault.</p>
+        <h1 id="txt-cap-title" data-i18n="cap_title" class="text-3d-cyan text-3xl text-center mb-3 leading-tight font-black">VERIFICACIÓN HUMANA</h1>
+        <p id="txt-cap-desc" data-i18n="cap_desc" class="text-sm text-gray-300 text-center mb-6 font-medium">Resuelve el código de seguridad para ingresar al Vault.</p>
         <div class="glass-panel p-6 w-full max-w-sm text-center border-[#00f3ff]">
             <div id="captcha-display" class="bg-black border-2 border-dashed border-[#00f3ff] py-4 rounded-xl text-3xl font-black text-[#00f3ff] tracking-[0.4em] mb-4 select-none" style="text-shadow: 0 0 10px #00f3ff;">A7X9K</div>
             <button onclick="app.generateCaptcha()" class="text-xs text-gray-400 hover:text-white underline mb-6 block mx-auto">
-                <i class="fa-solid fa-rotate-right mr-1"></i> <span id="btn-new-code">Generar otro código</span>
+                <i class="fa-solid fa-rotate-right mr-1"></i> <span id="btn-new-code" data-i18n="cap_new">Generar otro código</span>
             </button>
             <div class="mb-5">
-                <input type="text" id="captcha-input" placeholder="Ingresa el código..." class="cyber-input text-center uppercase tracking-widest text-lg" maxlength="5">
+                <input type="text" id="captcha-input" data-i18n-placeholder="cap_placeholder" placeholder="Ingresa el código..." class="cyber-input text-center uppercase tracking-widest text-lg" maxlength="5">
             </div>
             <button onclick="app.verifyCaptcha()" class="w-full btn-neon-cyan py-4 rounded-xl font-black text-lg uppercase tracking-wider levitate">
-                <i class="fa-solid fa-check mr-2"></i> <span id="btn-verify-text">VERIFICAR ACCESO</span>
+                <i class="fa-solid fa-check mr-2"></i> <span id="btn-verify-text" data-i18n="cap_verify">VERIFICAR ACCESO</span>
             </button>
         </div>
     </div>
@@ -201,44 +201,44 @@
     <!-- VIEW 0: LOGIN -->
     <div id="view-login" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10 transition-opacity duration-500 gpu-accelerated">
         <button onclick="app.switchView('consent')" class="absolute top-6 left-6 text-[#00f3ff] border border-[#00f3ff] rounded-full px-4 py-2 flex items-center hover:bg-[rgba(0,243,255,0.1)] transition text-sm font-bold z-50">
-            <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text">VOLVER</span>
+            <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text" data-i18n="btn_back_upper">VOLVER</span>
         </button>
         <i class="fa-brands fa-telegram text-7xl text-[#00f3ff] mb-4 drop-shadow-[0_0_15px_#00f3ff] levitate"></i>
-        <h1 id="txt-login-title" class="text-3d-cyan text-4xl text-center mb-6 leading-tight font-black">ACCESO AL VAULT</h1>
+        <h1 id="txt-login-title" data-i18n="login_hdr" class="text-3d-cyan text-4xl text-center mb-6 leading-tight font-black">ACCESO AL VAULT</h1>
         <div class="glass-panel p-6 w-full max-w-sm">
-            <p id="txt-login-desc" class="text-sm text-gray-200 text-center mb-5 font-medium">Inicia sesión con tu email y contraseña, o con Telegram.</p>
+            <p id="txt-login-desc" data-i18n="login_desc" class="text-sm text-gray-200 text-center mb-5 font-medium">Inicia sesión con tu email y contraseña, o con Telegram.</p>
             
             <div class="mb-4">
-                <label id="lbl-email-login" class="block text-xs text-[#00f3ff] mb-1 font-bold tracking-wider uppercase">CORREO ELECTRÓNICO</label>
+                <label id="lbl-email-login" data-i18n="lbl_email" class="block text-xs text-[#00f3ff] mb-1 font-bold tracking-wider uppercase">CORREO ELECTRÓNICO</label>
                 <div class="relative">
                     <i class="fa-solid fa-envelope absolute left-4 top-1/2 transform -translate-y-1/2 text-[#00f3ff]"></i>
-                    <input type="email" id="login-email" autocomplete="username" placeholder="tucorreo@email.com" class="cyber-input pl-11 text-base">
+                    <input type="email" id="login-email" data-i18n-placeholder="ph_email" autocomplete="username" placeholder="tucorreo@email.com" class="cyber-input pl-11 text-base">
                 </div>
             </div>
 
             <div class="mb-4">
-                <label id="lbl-login-pwd" class="block text-xs text-[#00f3ff] mb-1 font-bold tracking-wider uppercase">CONTRASEÑA</label>
+                <label id="lbl-login-pwd" data-i18n="lbl_password" class="block text-xs text-[#00f3ff] mb-1 font-bold tracking-wider uppercase">CONTRASEÑA</label>
                 <div class="relative">
                     <i class="fa-solid fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-[#00f3ff]"></i>
                     <input type="password" id="login-password" autocomplete="current-password" placeholder="••••••••" class="cyber-input pl-11 text-base" onkeydown="if(event.key==='Enter')app.loginWithEmail()">
                 </div>
             </div>
 
-            <button onclick="app.loginWithEmail()" id="btn-phone-text" class="w-full bg-transparent border-2 border-[#00f3ff] text-[#00f3ff] py-3.5 rounded-xl font-black text-base uppercase hover:bg-[rgba(0,243,255,0.1)] transition-colors mb-3">ACCEDER AL VAULT</button>
+            <button onclick="app.loginWithEmail()" id="btn-phone-text" data-i18n="btn_login" class="w-full bg-transparent border-2 border-[#00f3ff] text-[#00f3ff] py-3.5 rounded-xl font-black text-base uppercase hover:bg-[rgba(0,243,255,0.1)] transition-colors mb-3">ACCEDER AL VAULT</button>
             
             <div class="flex items-center my-3">
                 <div class="flex-grow border-t border-gray-700"></div>
-                <span id="txt-or-direct" class="mx-3 text-gray-400 text-xs font-bold">Ó DIRECTAMENTE CON</span>
+                <span id="txt-or-direct" data-i18n="txt_or" class="mx-3 text-gray-400 text-xs font-bold">Ó DIRECTAMENTE CON</span>
                 <div class="flex-grow border-t border-gray-700"></div>
             </div>
 
-            <button onclick="app.loginWithTelegram()" class="w-full flex items-center justify-center gap-3 bg-[#2481cc] text-white py-3.5 rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(36,129,204,0.5)] levitate active:scale-95 transition-transform">
-                <i class="fa-brands fa-telegram text-xl"></i> <span id="btn-tg-text">LOGIN CON TELEGRAM</span>
+            <button id="btn-login-telegram" onclick="app.loginWithTelegram()" class="w-full flex items-center justify-center gap-3 bg-[#2481cc] text-white py-3.5 rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(36,129,204,0.5)] levitate active:scale-95 transition-transform">
+                <i class="fa-brands fa-telegram text-xl"></i> <span id="btn-tg-text" data-i18n="btn_tg_login">LOGIN CON TELEGRAM</span>
             </button>
 
             <div class="mt-5 text-center">
-                <p id="txt-no-account" class="text-xs text-gray-300 mb-1 font-medium">¿No tienes cuenta aún?</p>
-                <button onclick="app.switchView('register')" id="btn-create-acc" class="text-sm font-bold text-[#ff00ff] hover:text-white transition border-b border-[#ff00ff] hover:border-white pb-0.5">CREAR CUENTA NUEVA</button>
+                <p id="txt-no-account" data-i18n="txt_no_account" class="text-xs text-gray-300 mb-1 font-medium">¿No tienes cuenta aún?</p>
+                <button onclick="app.switchView('register')" id="btn-create-acc" data-i18n="btn_create_account" class="text-sm font-bold text-[#ff00ff] hover:text-white transition border-b border-[#ff00ff] hover:border-white pb-0.5">CREAR CUENTA NUEVA</button>
             </div>
         </div>
     </div> 
@@ -246,49 +246,49 @@
     <!-- VIEW 0.5: REGISTRATION -->
     <div id="view-register" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10 transition-opacity duration-500 gpu-accelerated">
         <button onclick="app.switchView('login')" class="absolute top-6 left-6 text-[#ff00ff] border border-[#ff00ff] rounded-full px-4 py-2 flex items-center hover:bg-[rgba(255,0,255,0.1)] transition text-sm font-bold z-50">
-            <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text">VOLVER</span>
+            <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text" data-i18n="btn_back_upper">VOLVER</span>
         </button>
         <i class="fa-solid fa-user-plus text-6xl text-[#ff00ff] mb-3 drop-shadow-[0_0_15px_#ff00ff] levitate"></i>
-        <h1 id="txt-reg-title" class="text-3d-magenta text-3xl text-center mb-4 leading-tight font-black">NUEVA CUENTA</h1>
+        <h1 id="txt-reg-title" data-i18n="reg_hdr" class="text-3d-magenta text-3xl text-center mb-4 leading-tight font-black">NUEVA CUENTA</h1>
         
         <div class="glass-panel p-6 w-full max-w-sm">
-            <p id="txt-reg-desc" class="text-xs text-gray-200 text-center mb-4 font-medium">Elige tu rol e ingresa tus credenciales de acceso.</p>
+            <p id="txt-reg-desc" data-i18n="reg_desc" class="text-xs text-gray-200 text-center mb-4 font-medium">Elige tu rol e ingresa tus credenciales de acceso.</p>
             
-            <label id="lbl-reg-role" class="block text-xs text-[#ff00ff] mb-2 font-bold tracking-wider uppercase text-center">TIPO DE CUENTA</label>
+            <label id="lbl-reg-role" data-i18n="lbl_account_type" class="block text-xs text-[#ff00ff] mb-2 font-bold tracking-wider uppercase text-center">TIPO DE CUENTA</label>
             <div class="grid grid-cols-2 gap-2 mb-4">
                 <button type="button" id="reg-role-fan" onclick="app.setRegisterRole('fan')" class="py-2.5 px-3 rounded-xl border-2 border-[#ff00ff] bg-[#ff00ff]/20 text-white font-black text-xs uppercase flex items-center justify-center gap-1.5 transition">
-                    <i class="fa-solid fa-eye"></i> <span id="btn-role-fan-txt">SOY FAN</span>
+                    <i class="fa-solid fa-eye"></i> <span id="btn-role-fan-txt" data-i18n="role_fan">SOY FAN</span>
                 </button>
                 <button type="button" id="reg-role-creator" onclick="app.setRegisterRole('creator')" class="py-2.5 px-3 rounded-xl border-2 border-neutral-700 bg-black text-neutral-400 font-bold text-xs uppercase flex items-center justify-center gap-1.5 transition">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> <span id="btn-role-creator-txt">SOY CREADOR</span>
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> <span id="btn-role-creator-txt" data-i18n="role_creator">SOY CREADOR</span>
                 </button>
             </div>
 
             <div class="mb-3">
-                <label id="lbl-email" class="block text-xs text-[#ff00ff] mb-1 font-bold tracking-wider uppercase">CORREO ELECTRÓNICO</label>
+                <label id="lbl-email" data-i18n="lbl_email" class="block text-xs text-[#ff00ff] mb-1 font-bold tracking-wider uppercase">CORREO ELECTRÓNICO</label>
                 <div class="relative">
                     <i class="fa-solid fa-envelope absolute left-4 top-1/2 transform -translate-y-1/2 text-[#ff00ff]"></i>
-                    <input type="email" id="reg-email-input" autocomplete="username" placeholder="tucorreo@email.com" class="cyber-input border-[#ff00ff] focus:border-[#ff00ff] pl-11 text-sm">
+                    <input type="email" id="reg-email-input" data-i18n-placeholder="ph_email" autocomplete="username" placeholder="tucorreo@email.com" class="cyber-input border-[#ff00ff] focus:border-[#ff00ff] pl-11 text-sm">
                 </div>
             </div>
 
             <div class="mb-3">
-                <label id="lbl-reg-name" class="block text-xs text-[#ff00ff] mb-1 font-bold tracking-wider uppercase">ALIAS</label>
+                <label id="lbl-reg-name" data-i18n="lbl_alias" class="block text-xs text-[#ff00ff] mb-1 font-bold tracking-wider uppercase">ALIAS</label>
                 <div class="relative">
                     <i class="fa-solid fa-user absolute left-4 top-1/2 transform -translate-y-1/2 text-[#ff00ff]"></i>
-                    <input type="text" id="reg-name-input" maxlength="32" autocomplete="nickname" placeholder="Tu alias VIP" class="cyber-input border-[#ff00ff] focus:border-[#ff00ff] pl-11 text-sm">
+                    <input type="text" id="reg-name-input" data-i18n-placeholder="ph_alias" maxlength="32" autocomplete="nickname" placeholder="Tu alias VIP" class="cyber-input border-[#ff00ff] focus:border-[#ff00ff] pl-11 text-sm">
                 </div>
             </div>
 
             <div class="mb-3">
-                <label id="lbl-reg-pwd" class="block text-xs text-[#ff00ff] mb-1 font-bold tracking-wider uppercase">CONTRASEÑA</label>
+                <label id="lbl-reg-pwd" data-i18n="lbl_password" class="block text-xs text-[#ff00ff] mb-1 font-bold tracking-wider uppercase">CONTRASEÑA</label>
                 <div class="relative">
                     <i class="fa-solid fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-[#ff00ff]"></i>
-                    <input type="password" id="reg-password-input" autocomplete="new-password" placeholder="Mínimo 8 caracteres" class="cyber-input border-[#ff00ff] focus:border-[#ff00ff] pl-11 text-sm">
+                    <input type="password" id="reg-password-input" data-i18n-placeholder="ph_password_min" autocomplete="new-password" placeholder="Mínimo 8 caracteres" class="cyber-input border-[#ff00ff] focus:border-[#ff00ff] pl-11 text-sm">
                 </div>
             </div>
 
-            <button onclick="app.registerWithData()" id="btn-reg-text" class="w-full bg-transparent border-2 border-[#ff00ff] text-[#ff00ff] py-3.5 rounded-xl font-black text-sm uppercase hover:bg-[rgba(255,0,255,0.1)] transition-colors mb-3">REGISTRARSE</button>
+            <button onclick="app.registerWithData()" id="btn-reg-text" data-i18n="btn_register" class="w-full bg-transparent border-2 border-[#ff00ff] text-[#ff00ff] py-3.5 rounded-xl font-black text-sm uppercase hover:bg-[rgba(255,0,255,0.1)] transition-colors mb-3">REGISTRARSE</button>
         </div>
     </div>
 
@@ -336,16 +336,16 @@
                     <i class="fa-solid fa-video"></i>
                 </div>
                 <div>
-                    <h4 class="text-xs font-black text-white uppercase" id="wall-chat-title">CHAT GLOBAL & VIDEO BÚNKER</h4>
-                    <p class="text-[10px] text-gray-300 font-medium" id="wall-chat-desc">Comunidad en directo (Independiente)</p>
+                    <h4 class="text-xs font-black text-white uppercase" id="wall-chat-title" data-i18n="wall_chat_title">CHAT GLOBAL & VIDEO BÚNKER</h4>
+                    <p class="text-[10px] text-gray-300 font-medium" id="wall-chat-desc" data-i18n="wall_chat_desc">Comunidad en directo (Independiente)</p>
                 </div>
             </div>
             <div class="flex gap-1.5 shrink-0">
                 <button onclick="app.openGlobalChat()" class="bg-black border border-[#00f3ff] hover:bg-[#00f3ff]/20 text-[#00f3ff] font-black px-3 py-2 rounded-xl text-[10px] uppercase shadow-[0_0_10px_rgba(0,243,255,0.4)] transition flex items-center gap-1">
-                    <i class="fa-solid fa-comments"></i> <span id="btn-wall-chat">ABRIR CHAT</span>
+                    <i class="fa-solid fa-comments"></i> <span id="btn-wall-chat" data-i18n="btn_wall_chat">ABRIR CHAT</span>
                 </button>
                 <button id="btn-join-video-global" onclick="app.joinVideoBunker()" class="bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black px-3 py-2 rounded-xl text-[10px] uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition flex items-center gap-1 animate-pulse">
-                    <i class="fa-solid fa-video"></i> <span id="btn-wall-video">ABRIR VIDEO</span>
+                    <i class="fa-solid fa-video"></i> <span id="btn-wall-video" data-i18n="btn_wall_video">ABRIR VIDEO</span>
                 </button>
             </div>
         </div>
@@ -354,22 +354,22 @@
 
         <div class="glass-panel mx-2 mb-2 p-2.5 flex justify-between items-end z-20 px-4">
             <button onclick="app.openMenuModal()" class="flex flex-col items-center text-[#ff00ff] hover:scale-110 transition w-14 pb-1">
-                <i class="fa-solid fa-layer-group text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i><span class="text-[9px] font-black tracking-wide" id="nav-catalog">CATÁLOGO</span>
+                <i class="fa-solid fa-layer-group text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i><span class="text-[9px] font-black tracking-wide" id="nav-catalog" data-i18n="nav_catalog">CATÁLOGO</span>
             </button>
             <button onclick="app.openCommunitiesModal()" class="flex flex-col items-center text-[#ff00ff] hover:scale-110 transition w-14 pb-1">
-                <i class="fa-solid fa-users text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i><span class="text-[9px] font-black tracking-wide" id="nav-communities">COMUNIDAD</span>
+                <i class="fa-solid fa-users text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i><span class="text-[9px] font-black tracking-wide" id="nav-communities" data-i18n="nav_community">COMUNIDAD</span>
             </button>
             <button onclick="app.openUploadPanel()" class="flex flex-col items-center text-[#00f3ff] hover:scale-110 transition relative -mt-7 w-16">
                 <div class="bg-black border-2 border-[#00f3ff] p-3.5 rounded-full shadow-[0_0_20px_#00f3ff] animate-pulse mb-1">
                     <i class="fa-solid fa-circle-plus text-2xl drop-shadow-[0_0_5px_#ff00ff]"></i>
                 </div>
-                <span class="text-[10px] font-black tracking-wide text-[#00f3ff]" id="nav-post">PUBLICAR</span>
+                <span class="text-[10px] font-black tracking-wide text-[#00f3ff]" id="nav-post" data-i18n="nav_post">PUBLICAR</span>
             </button>
             <button onclick="app.openProfile()" class="flex flex-col items-center text-[#ffb703] levitate hover:scale-110 transition w-14 pb-1">
-                <i class="fa-solid fa-user-astronaut text-2xl mb-1 drop-shadow-[0_0_5px_#ffb703]"></i><span class="text-[9px] font-black tracking-wide" id="nav-profile">MI PERFIL</span>
+                <i class="fa-solid fa-user-astronaut text-2xl mb-1 drop-shadow-[0_0_5px_#ffb703]"></i><span class="text-[9px] font-black tracking-wide" id="nav-profile" data-i18n="nav_profile">MI PERFIL</span>
             </button>
             <button onclick="app.openSupport()" class="flex flex-col items-center text-[#ff00ff] hover:scale-110 transition w-14 pb-1">
-                <i class="fa-solid fa-envelope text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i><span class="text-[9px] font-black tracking-wide" id="nav-support">DMs</span>
+                <i class="fa-solid fa-envelope text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i><span class="text-[9px] font-black tracking-wide" id="nav-support" data-i18n="nav_dms">DMs</span>
             </button>
         </div>
     </div>
@@ -377,7 +377,7 @@
     <!-- VIEW 3: UPLOAD POST (PUBLICAR CONTENIDO) -->
     <div id="view-upload" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10 gpu-accelerated">
         <button onclick="app.switchView('feed')" class="absolute top-6 left-6 text-[#00f3ff] border border-[#00f3ff] rounded-full px-4 py-2 flex items-center hover:bg-[rgba(0,243,255,0.1)] transition text-sm font-bold z-50">
-            <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text">VOLVER</span>
+            <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text" data-i18n="btn_back_upper">VOLVER</span>
         </button>
         <i class="fa-solid fa-cloud-arrow-up text-6xl text-[#00f3ff] mb-4 drop-shadow-[0_0_15px_#ff00ff] levitate"></i>
         <h2 class="text-3d-cyan text-3xl text-center mb-6 font-black" id="upload-hdr">SUBIR CONTENIDO</h2>
@@ -424,7 +424,7 @@
             </button>
 
             <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full flex items-center justify-center px-4 py-2 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 z-50 text-sm">
-                <i class="fa-solid fa-arrow-left mr-1"></i> <span class="btn-back-text">VOLVER</span>
+                <i class="fa-solid fa-arrow-left mr-1"></i> <span class="btn-back-text" data-i18n="btn_back_upper">VOLVER</span>
             </button>
             <h2 class="text-3d-cyan text-3xl text-center mb-6 mt-2 font-black" id="prof-title">MI PERFIL</h2>
             
@@ -535,7 +535,7 @@
                     <h3 id="crm-chat-title" class="font-bold text-white text-xs uppercase tracking-wider">DMs (MENSAJES DIRECTOS)</h3>
                 </div>
                 <button onclick="app.closeModals()" class="bg-red-600 rounded-full inline-flex items-center justify-center px-3 py-1.5 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 text-xs">
-                    <i class="fa-solid fa-arrow-left mr-1 text-xs"></i> <span class="btn-back-text">VOLVER</span>
+                    <i class="fa-solid fa-arrow-left mr-1 text-xs"></i> <span class="btn-back-text" data-i18n="btn_back_upper">VOLVER</span>
                 </button>
             </div>
 
@@ -773,8 +773,8 @@
     <!-- 🌐 MODAL: COMUNIDADES OFICIALES -->
     <div id="modal-communities-links" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
         <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-sm flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
-            <h3 class="text-xl font-black text-[#00f3ff] mb-2 text-center tracking-widest uppercase"><i class="fa-solid fa-users mr-2"></i> <span id="com-eco-title">ECOSISTEMA</span></h3>
-            <p class="text-xs text-neutral-300 text-center mb-6" id="com-eco-desc">Únete a nuestros canales y grupos oficiales.</p>
+            <h3 class="text-xl font-black text-[#00f3ff] mb-2 text-center tracking-widest uppercase"><i class="fa-solid fa-users mr-2"></i> <span id="com-eco-title" data-i18n="com_title_eco">ECOSISTEMA</span></h3>
+            <p class="text-xs text-neutral-300 text-center mb-6" id="com-eco-desc" data-i18n="com_desc_eco">Únete a nuestros canales y grupos oficiales.</p>
             
             <div class="space-y-3 overflow-y-auto max-h-[50vh] pr-1">
                 <button onclick="app.openLink('https://t.me/+66WhSKtHWI5kZTkx')" class="w-full bg-black border border-amber-500 text-amber-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(245,158,11,0.4)] transition hover:bg-amber-500/20 active:scale-95 text-center leading-tight">
@@ -865,7 +865,7 @@
                         <span id="online-users-count" class="text-[10px] font-black text-white bg-emerald-500/20 px-1.5 py-0.5 rounded border border-emerald-500/40">1</span>
                     </div>
                     <button onclick="app.closeModals()" class="bg-red-600 rounded-full inline-flex items-center justify-center px-3 py-1.5 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 text-xs">
-                        <i class="fa-solid fa-arrow-left mr-1 text-xs"></i> <span class="btn-back-text">VOLVER</span>
+                        <i class="fa-solid fa-arrow-left mr-1 text-xs"></i> <span class="btn-back-text" data-i18n="btn_back_upper">VOLVER</span>
                     </button>
                 </div>
             </div>
@@ -989,19 +989,19 @@
     
     <!-- 🛡️ SECUENCIA DE CARGA v2 — ORDEN ESTRICTO, SIN defer/async.
          Eliminados: js/security.js, js/api.js, js/chat.js (v1 inseguros, sustituidos por los módulos v2). -->
-    <!-- 1 -->  <script src="js/config.js?v=50"></script>
+    <!-- 1 -->  <script src="js/config.js?v=51"></script>
     <!-- 2 -->  <script src="https://telegram.org/js/telegram-web-app.js"></script>
                 <script src="https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js"></script>
-    <!-- 3 -->  <script src="js/translations.js?v=50"></script>
-                <script src="js/translations_patch.js?v=50"></script>
-    <!-- 4 -->  <script src="js/hybrid_bridge.js?v=50"></script>
-    <!-- 5 -->  <script src="js/media_manager.js?v=50"></script>
-    <!-- 6 -->  <script src="js/api_v2.js?v=50"></script>
-    <!-- 7 -->  <script src="js/chat_v2.js?v=50"></script>
-    <!-- 8 -->  <script src="js/ui_bridge.js?v=50"></script>
-    <!-- 9 -->  <script src="js/webrtc_room.js?v=50"></script>
-    <!-- 10 --> <script src="js/app.js?v=50"></script>
-    <!-- 11 --> <script src="js/app_secure.js?v=50"></script>
+    <!-- 3 -->  <script src="js/translations.js?v=51"></script>
+                <script src="js/translations_patch.js?v=51"></script>
+    <!-- 4 -->  <script src="js/hybrid_bridge.js?v=51"></script>
+    <!-- 5 -->  <script src="js/media_manager.js?v=51"></script>
+    <!-- 6 -->  <script src="js/api_v2.js?v=51"></script>
+    <!-- 7 -->  <script src="js/chat_v2.js?v=51"></script>
+    <!-- 8 -->  <script src="js/ui_bridge.js?v=51"></script>
+    <!-- 9 -->  <script src="js/webrtc_room.js?v=51"></script>
+    <!-- 10 --> <script src="js/app.js?v=51"></script>
+    <!-- 11 --> <script src="js/app_secure.js?v=51"></script>
     
     <!-- SCRIPT NATIVO: CONTROL DE ARRASTRE PiP -->
     <script>

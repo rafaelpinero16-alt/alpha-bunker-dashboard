@@ -1,5 +1,5 @@
 /**
- * js/webrtc_room.js — Video de salas (mesh P2P) sobre MediaManager + BunkerChat.sendSignal.
+ * js/webrtc_room.js (v2.3) — Video de salas (mesh P2P) sobre MediaManager + BunkerChat.sendSignal.
  *
  * Sustituye a app.createPeerConnection / sendWebRTCOffer / handleWebRTCMessage /
  * requestAndLoadMedia de app.js, que:
@@ -11,6 +11,11 @@
  *
  * Protocolo (ver docs/BACKEND_CONTRACT_V2.md §6). El servidor SIEMPRE fija caller_id
  * a partir del ticket del socket; el cliente nunca declara su identidad.
+ *
+ * v2.3 — Malla adaptativa: en una malla P2P cada participante SUBE un flujo por cada peer.
+ * rebalance() reparte un presupuesto total de subida (UPLINK_BUDGET) entre los peers y, a partir
+ * de 3 peers, baja la captura a 480×270 @ 15 fps (menos CPU de codificación y memoria). Al
+ * salir gente se vuelve a subir la calidad. Los <video> de peers que se van se liberan.
  *
  * Telegram NO expone API de videollamadas/grupos para Mini Apps: el video es WebRTC propio.
  * Lo que sí es nativo de Telegram aquí: HapticFeedback, BackButton (minimiza), y
@@ -24,11 +29,17 @@
   const $ = (id) => global.document.getElementById(id);
 
   const FALLBACK_ICE = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
-  const VIDEO_MAX_BITRATE = 600000;
+  const UPLINK_BUDGET = 1500000;     // bps totales de subida de vídeo repartidos entre peers
+  const MAX_PER_PEER = 600000;       // techo por peer (1-2 peers)
+  const MIN_PER_PEER = 150000;       // suelo por peer (malla grande)
+  const PROFILES = {
+    high: { width: 640, height: 360, frameRate: 24 },
+    low: { width: 480, height: 270, frameRate: 15 },
+  };
 
   const st = {
     active: false, suspended: false, roomId: null, owner: null, stream: null,
-    live: false, micMuted: false, camOff: false,
+    live: false, micMuted: false, camOff: false, profile: 'high',
     iceServers: null, peers: new Map(),   // peerId -> { pc, pendingIce:[], name, polite, makingOffer, initiator }
   };
 
@@ -39,7 +50,8 @@
   function constraints() {
     let cam = null, mic = null;
     try { cam = global.localStorage.getItem('alpha_preferred_cam'); mic = global.localStorage.getItem('alpha_preferred_mic'); } catch (_) {}
-    const video = { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 24, max: 30 }, facingMode: 'user' };
+    const pr = PROFILES[st.profile] || PROFILES.high;
+    const video = { width: { ideal: pr.width }, height: { ideal: pr.height }, frameRate: { ideal: pr.frameRate, max: 30 }, facingMode: 'user' };
     if (cam && cam !== 'obs-fallback') { video.deviceId = { exact: cam }; delete video.facingMode; }
     const audio = mic === 'none' ? false : (mic ? { deviceId: { exact: mic }, echoCancellation: true, noiseSuppression: true } : { echoCancellation: true, noiseSuppression: true });
     return { video, audio };
@@ -215,7 +227,7 @@
       const s = pc.connectionState;
       if (s === 'connected') {
         clearTimeout(peer.failTimer);
-        capBitrate(pc);
+        rebalance();
       } else if (s === 'failed') {
         if (peer.initiator) restartIce(peerId);
         peer.failTimer = setTimeout(() => { if (pc.connectionState !== 'connected') closePeer(peerId); }, 15000);
@@ -247,16 +259,44 @@
     makeOffer(peerId, { iceRestart: true });
   }
 
-  async function capBitrate(pc) {
+  function perPeerBitrate() {
+    const n = Math.max(1, st.peers.size);
+    return Math.max(MIN_PER_PEER, Math.min(MAX_PER_PEER, Math.floor(UPLINK_BUDGET / n)));
+  }
+
+  async function capBitrate(pc, bps) {
     try {
       for (const s of pc.getSenders()) {
-        if (!s.track || s.track.kind !== 'video') continue;
+        if (!s.track || s.track.kind !== 'video' || typeof s.getParameters !== 'function') continue;
         const p = s.getParameters();
-        if (!p.encodings || !p.encodings.length) continue;
-        p.encodings[0].maxBitrate = VIDEO_MAX_BITRATE;
+        if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+        if (p.encodings[0].maxBitrate === bps) continue;
+        p.encodings[0].maxBitrate = bps;
         await s.setParameters(p);
       }
     } catch (_) { /* no soportado en todas las WebView */ }
+  }
+
+  /** Reparte la subida entre peers y ajusta la captura local según el tamaño de la malla. */
+  let rebalanceTimer = null;
+  function rebalance() {
+    clearTimeout(rebalanceTimer);
+    rebalanceTimer = setTimeout(async () => {
+      if (!st.active) return;
+      const bps = perPeerBitrate();
+      for (const peer of st.peers.values()) {
+        if (peer.pc.connectionState === 'connected') await capBitrate(peer.pc, bps);
+      }
+      const want = st.peers.size >= 3 ? 'low' : 'high';
+      const track = st.stream && st.stream.getVideoTracks()[0];
+      if (track && want !== st.profile && typeof track.applyConstraints === 'function') {
+        const pr = PROFILES[want];
+        try {
+          await track.applyConstraints({ width: { ideal: pr.width }, height: { ideal: pr.height }, frameRate: { ideal: pr.frameRate, max: pr.frameRate } });
+          st.profile = want;
+        } catch (e) { console.warn('[RoomVideo] applyConstraints', e); }
+      }
+    }, 300);
   }
 
   async function flushIce(peer) {
@@ -305,6 +345,7 @@
       clearTimeout(peer.failTimer);
       st.peers.delete(peerId);
       global.MediaManager.releasePeer(st.owner, peer.pc);
+      rebalance();
     }
     removeTile(peerId);
   }
@@ -314,6 +355,7 @@
   // ---------------------------------------------------------------- API pública
   const RoomVideo = {
     isActive() { return st.active; },
+    stats() { return { peers: st.peers.size, perPeerBitrate: perPeerBitrate(), profile: st.profile }; },
     isLive() { return st.live; },
     peerCount() { return st.peers.size; },
 
@@ -324,7 +366,7 @@
 
       st.roomId = room;
       st.owner = 'room:' + room;
-      st.live = false; st.micMuted = false; st.camOff = false;
+      st.live = false; st.micMuted = false; st.camOff = false; st.profile = 'high';
       showBunker(roomName || room);
 
       // El socket de texto debe pertenecer a esta sala (la señalización usa currentRoomId).

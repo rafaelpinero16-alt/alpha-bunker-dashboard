@@ -1,9 +1,13 @@
 /**
- * js/chat_v2.js (v2.1) — Reemplazo de chat.js con la MISMA interfaz pública (BunkerChat.*).
+ * js/chat_v2.js (v2.3) — Reemplazo de chat.js con la MISMA interfaz pública (BunkerChat.*).
  *   - WebSockets con ticket firmado de un solo uso (no /ws/{user_id});
  *   - texto y señalización de video en sockets separados por sala;
  *   - room_id lo fija la URL; el cliente ya no puede escribir en otra sala;
  *   - reconexión con backoff exponencial + jitter y heartbeat de presencia.
+ *
+ * v2.3: tope de MAX_RECONNECT_ATTEMPTS (10) reintentos con backoff; al agotarse NO hay bucle:
+ *       el socket queda en pausa y se reanuda solo con el evento 'online' del navegador,
+ *       con AppBridge 'app:active' (la app vuelve a primer plano) o con BunkerChat.reconnectAll().
  *
  * Cambios v2.1 (auditoría):
  *   - Cola de salida: antes send() devolvía false si el socket no estaba OPEN y la
@@ -22,6 +26,8 @@
 
   const SIGNAL_TYPES = ['webrtc_offer', 'webrtc_answer', 'webrtc_ice', 'join_video', 'leave_video', 'go_live', 'stop_live'];
   const MAX_QUEUE = 100;
+  const MAX_RECONNECT_ATTEMPTS = 10;
+  const sockets = new Set();   // sockets gestionados vivos (para reanudarlos en bloque)
 
   function backoff(attempt) {
     const base = Math.min(30000, 1000 * Math.pow(2, attempt));
@@ -33,24 +39,40 @@
     return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
   }
 
-  /** Socket con reconexión automática, ticket renovado en cada intento y cola de salida. */
+  /**
+   * Socket con reconexión automática, ticket renovado en cada intento y cola de salida.
+   * Nunca bloquea la UI: todos los reintentos son setTimeout asíncronos con backoff + jitter,
+   * con un máximo de MAX_RECONNECT_ATTEMPTS. Agotados, queda "en pausa" hasta resume().
+   */
   function managedSocket(path, onMessage, onOpen) {
-    let ws = null, attempt = 0, closedByUser = false, heartbeat = null, timer = null;
+    let ws = null, attempt = 0, closedByUser = false, paused = false, heartbeat = null, timer = null;
     const queue = [];
 
     function flush() {
       while (queue.length && ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(queue.shift()));
     }
 
+    function scheduleReconnect(reason) {
+      if (closedByUser) return;
+      if (attempt >= MAX_RECONNECT_ATTEMPTS) {
+        paused = true;
+        console.warn('[BunkerChat] ' + path + ': ' + MAX_RECONNECT_ATTEMPTS + ' reintentos agotados (' + reason + '). En pausa hasta recuperar red o foco.');
+        return;
+      }
+      clearTimeout(timer);
+      timer = setTimeout(connect, backoff(attempt++));
+    }
+
     async function connect() {
       if (closedByUser) return;
+      paused = false;
       try {
         const url = await B().wsUrl(path);
         if (closedByUser) return;
         ws = new WebSocket(url);
       } catch (e) {
-        if (e && e.status === 401) return;  // sin sesión: no reintentar en bucle
-        timer = setTimeout(connect, backoff(attempt++));
+        if (e && e.status === 401) { paused = true; return; }   // sin sesión: no reintentar en bucle
+        scheduleReconnect(e && (e.code || e.status) || 'ticket');
         return;
       }
       ws.onopen = () => {
@@ -64,7 +86,7 @@
         let data;
         try { data = JSON.parse(ev.data); } catch (_) { return; }
         if (data && data.type === 'pong') return;
-        onMessage(data);
+        try { onMessage(data); } catch (e) { console.error('[BunkerChat] handler ' + path, e); }
       };
       ws.onclose = (ev) => {
         clearInterval(heartbeat);
@@ -72,9 +94,10 @@
         if (closedByUser || [4400, 4401, 4403, 4404].indexOf(ev.code) >= 0) {
           if (ev.code === 4403 && appRef()) appRef().showToast(ev.reason || 'Acceso restringido a esta sala.');
           queue.length = 0;
+          if (!closedByUser) paused = true;
           return;
         }
-        timer = setTimeout(connect, backoff(attempt++));
+        scheduleReconnect('close ' + ev.code);
       };
       ws.onerror = () => { try { ws.close(); } catch (_) {} };
     }
@@ -90,22 +113,39 @@
       if (closedByUser) return false;
       if (queue.length >= MAX_QUEUE) queue.shift();
       queue.push(obj);
+      if (paused) resume();
       return true;
+    }
+
+    /** Reanuda un socket en pausa (reintentos agotados) con el contador a cero. */
+    function resume() {
+      if (closedByUser || !paused) return;
+      attempt = 0;
+      clearTimeout(timer);
+      connect();
     }
 
     function close() {
       closedByUser = true;
+      paused = false;
       queue.length = 0;
       clearTimeout(timer);
       clearInterval(heartbeat);
       if (ws) try { ws.close(1000); } catch (_) {}
+      sockets.delete(handle);
     }
 
     function readyState() { return ws ? ws.readyState : WebSocket.CONNECTING; }
 
+    const handle = { send, close, resume, readyState, isPaused: () => paused, attempts: () => attempt };
+    sockets.add(handle);
     connect();
-    return { send, close, readyState };
+    return handle;
   }
+
+  function resumeAll() { sockets.forEach((s) => { try { s.resume(); } catch (_) {} }); }
+  try { global.addEventListener('online', resumeAll); } catch (_) {}
+  if (B() && typeof B().on === 'function') B().on('app:active', resumeAll);
 
   /** Normaliza payloads legacy (string JSON) en objetos. */
   function normalize(payload) {
@@ -298,6 +338,11 @@
       this.leaveRoom();
       if (this.dm) { this.dm.close(); this.dm = null; }
     },
+
+    /** Reanuda todos los sockets en pausa (p. ej. botón "Reconectar"). */
+    reconnectAll() { resumeAll(); },
+
+    maxReconnectAttempts: MAX_RECONNECT_ATTEMPTS,
   };
 
   /** Inserta texto de usuario sin interpretar HTML. */

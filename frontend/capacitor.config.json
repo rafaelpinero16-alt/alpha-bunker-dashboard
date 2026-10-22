@@ -1,8 +1,0 @@
-{
-  "appId": "com.alphabunker.app",
-  "appName": "Alpha Bunker",
-  "webDir": "www",
-  "server": {
-    "androidScheme": "https"
-  }
-}

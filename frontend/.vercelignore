@@ -1,0 +1,13 @@
+# .vercelignore — Vercel solo debe publicar la web estática.
+android/
+ios/
+resources/
+scripts/
+docs/
+www/
+node_modules/
+smoke.js
+package.json
+package-lock.json
+capacitor.config.json
+README.md

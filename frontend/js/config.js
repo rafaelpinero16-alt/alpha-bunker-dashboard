@@ -23,6 +23,11 @@ window.ALPHA_CONFIG = Object.freeze({
 
   colors: { header: '#000000', background: '#050505', bottomBar: '#050505' },
 
+  // Tiempo máximo por petición HTTP. Render (plan gratuito) apaga el servicio tras 15 min
+  // sin tráfico y tarda ~1 min en arrancar: 65 s cubre ese arranque en frío. Con una
+  // instancia de pago (siempre activa) puedes bajarlo a 15000.
+  timeoutMs: 65000,
+
   features: {
     // Telegram exige Stars para bienes/servicios digitales dentro de Mini Apps.
     // Mantén las pasarelas externas desactivadas dentro de Telegram.
@@ -32,6 +37,10 @@ window.ALPHA_CONFIG = Object.freeze({
     videoPersistentInBackground: false,
     // Máximo de participantes con cámara en una sala mesh P2P (por encima → usar SFU).
     maxMeshPeers: 6,
+    // Login con Telegram en el APK/web (vía bot + deep link alphabunker://login).
+    // Requiere /v2/auth/telegram/login-intent en el backend; si no existe, el botón se
+    // desactiva solo y se muestra el aviso. Pon false para ocultar el flujo desde el inicio.
+    telegramLoginStandalone: true,
     // Bloquea en runtime cualquier fetch al backend fuera de /v2 (red de seguridad).
     blockLegacyEndpoints: true,
   },

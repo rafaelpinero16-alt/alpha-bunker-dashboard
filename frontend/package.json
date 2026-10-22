@@ -1,19 +1,30 @@
 {
-  "name": "frontend",
-  "version": "1.0.0",
-  "description": "",
-  "main": "sw.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "name": "alpha-bunker",
+  "version": "2.2.0",
+  "private": true,
+  "description": "Alpha Bunker — Telegram Mini App + APK (Capacitor)",
   "type": "commonjs",
+  "scripts": {
+    "test": "node smoke.js",
+    "build:www": "node scripts/build-www.mjs",
+    "assets:sources": "node scripts/make-icon-sources.mjs",
+    "assets:android": "capacitor-assets generate --android --assetPath resources --iconBackgroundColor \"#050505\" --iconBackgroundColorDark \"#050505\" --splashBackgroundColor \"#050505\" --splashBackgroundColorDark \"#050505\"",
+    "android:sync": "npm run build:www && npx cap sync android",
+    "android:open": "npx cap open android"
+  },
   "dependencies": {
-    "@capacitor/android": "^8.5.3",
-    "@capacitor/app": "^8.1.2",
-    "@capacitor/cli": "^8.5.3",
-    "@capacitor/core": "^8.5.3"
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/app-launcher": "^7.0.0",
+    "@capacitor/browser": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/keyboard": "^7.0.0",
+    "@capacitor/preferences": "^7.0.0",
+    "@capacitor/splash-screen": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.0",
+    "sharp": "^0.33.0"
   }
 }

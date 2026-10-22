@@ -1,6 +1,6 @@
-// sw.js — Service Worker v50 (arquitectura v2). Network-first para archivos propios;
+// sw.js — Service Worker v51 (arquitectura v2.3). Network-first para archivos propios;
 // nunca intercepta API, WebSockets, Telegram, TON Connect ni CDNs (origen distinto).
-const CACHE_VERSION = 'v50';
+const CACHE_VERSION = 'v51';
 const CACHE_NAME = `alphabunker-${CACHE_VERSION}`;
 
 const ASSETS_TO_CACHE = [
@@ -9,6 +9,7 @@ const ASSETS_TO_CACHE = [
   './manifest.json',
   './privacy.html',
   './terms.html',
+  './404.html',
   './css/style.css',
   './css/hybrid.css',
   './js/config.js',

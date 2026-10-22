@@ -1,5 +1,5 @@
 /**
- * js/app_secure.js — Capa de integración segura sobre app.js (app_5.js).
+ * js/app_secure.js (v2.3) — Capa de integración segura sobre app.js (app_5.js).
  *
  * Se carga DESPUÉS de app.js y sustituye en runtime los métodos que:
  *   1. enviaban user_id/sender_id/follower_id desde el cliente (27 fetch directos),
@@ -40,12 +40,14 @@
   const orig = {};
   ['updateProfileUI', 'loadConversation', 'openDirectChat', 'closeModals', 'openExternalCheckout', 'subscribeCreatorTier'].forEach((k) => { orig[k] = app[k]; });
 
-  function toast(m) { app.showToast(m); }
+  function toast(m) { try { app.showToast(m); } catch (e) { console.error('[AlphaSecure] toast', e, m); } }
   function errMsg(e) {
     if (!e) return T('toast_network_error', 'Error');
+    if (e.code === 'TIMEOUT') return T('toast_server_slow', 'Servidor lento');
+    if (e.code === 'NETWORK' || e.status === 0) return T('toast_server_unreachable', 'Sin conexión');
     if (e.status === 401) return T('toast_session_expired', 'Sesión expirada');
     if (e.status === 402) return T('toast_insufficient_balance', 'Saldo insuficiente');
-    return e.message && e.message !== 'Failed to fetch' ? '⚠️ ' + e.message : T('toast_network_error', 'Error de red');
+    return e.message ? '⚠️ ' + e.message : T('toast_network_error', 'Error de red');
   }
   function syncClosingConfirmation() { B().setClosingConfirmation(payInFlight || !!(RV() && RV().isActive())); }
 
@@ -69,10 +71,14 @@
   }
 
   // ==================================================================== 1. i18n
+  // Una sola fuente de verdad: translations_patch.js (tr). Fallback idioma → en → es → ''.
   app.getTrans = function (key) {
-    const lang = this.currentLang || getLS('alpha_lang') || 'es';
-    const t = global.t || {};
-    return (t[lang] && t[lang][key]) || (t.en && t.en[key]) || (t.es && t.es[key]) || '';
+    try {
+      if (typeof global.tr === 'function') return global.tr(key, this.currentLang);
+      const lang = this.currentLang || getLS('alpha_lang') || 'es';
+      const t = global.t || {};
+      return (t[lang] && t[lang][key]) || (t.en && t.en[key]) || (t.es && t.es[key]) || '';
+    } catch (_) { return ''; }
   };
 
   // ==================================================================== 2. identidad (solo servidor)
@@ -111,16 +117,148 @@
   }
 
   // ==================================================================== 3. arranque y sesión
-  app.checkSession = async function () {
-    const TG = global.Telegram && global.Telegram.WebApp;
-    this.initTheme();
-    try { this.initSplash3D(); } catch (_) {}
+  // Durante el arranque, "sin sesión" es el estado normal del APK: no se muestra
+  // "sesión expirada" ni se cambia de vista desde onAuthRequired.
+  let booting = true;
 
-    const tgLang = TG && TG.initDataUnsafe && TG.initDataUnsafe.user && TG.initDataUnsafe.user.language_code;
-    let lang = getLS('alpha_lang') || (tgLang ? String(tgLang).slice(0, 2) : 'es');
-    if (SUPPORTED_LANGS.indexOf(lang) < 0) lang = 'es';
-    this.currentLang = lang;
-    if (typeof global.applyTranslations === 'function') global.applyTranslations(lang);
+  // ---------------------------------------------------------------- Splash 3D gestionado
+  /**
+   * Sustituye a app.initSplash3D (que creaba un WebGLRenderer nuevo en cada arranque, lo
+   * paraba a los 3 s aunque el splash siguiera visible y nunca liberaba el contexto WebGL).
+   *  - Un único renderer; si ya existe, start() solo reanuda la animación.
+   *  - Animación limitada a ~30 fps y en pausa cuando la app pasa a segundo plano.
+   *  - stop() libera geometrías, materiales y el contexto WebGL (forceContextLoss), para que
+   *    el vídeo WebRTC y el resto de la SPA no compitan con un contexto huérfano.
+   *  - Sin WebGL, sin THREE o con prefers-reduced-motion: no hace nada (queda el logo estático).
+   */
+  const Splash3D = (function () {
+    let ctx = null, rafId = 0, last = 0, running = false;
+    const FRAME_MS = 1000 / 30;
+
+    function reducedMotion() {
+      try { return global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; }
+    }
+
+    function build(canvas) {
+      const THREE = global.THREE;
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, powerPreference: 'low-power' });
+      renderer.setSize(canvas.clientWidth || 176, canvas.clientHeight || 176, false);
+      renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, 1.5));
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
+      camera.position.z = 4.5;
+      const sphereGeo = new THREE.IcosahedronGeometry(1.4, 1);
+      const sphereMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, wireframe: true, transparent: true, opacity: 0.35 });
+      const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+      scene.add(sphere);
+      const count = 70;
+      const positions = new Float32Array(count * 3);
+      for (let i = 0; i < count * 3; i++) positions[i] = (Math.random() - 0.5) * 5;
+      const pointsGeo = new THREE.BufferGeometry();
+      pointsGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const pointsMat = new THREE.PointsMaterial({ color: 0xff00ff, size: 0.06 });
+      const points = new THREE.Points(pointsGeo, pointsMat);
+      scene.add(points);
+      return { renderer, scene, camera, sphere, points, disposables: [sphereGeo, sphereMat, pointsGeo, pointsMat] };
+    }
+
+    function frame(t) {
+      if (!running || !ctx) return;
+      rafId = global.requestAnimationFrame(frame);
+      if (t - last < FRAME_MS) return;
+      last = t;
+      ctx.sphere.rotation.x += 0.016;
+      ctx.sphere.rotation.y += 0.024;
+      ctx.points.rotation.y -= 0.01;
+      ctx.renderer.render(ctx.scene, ctx.camera);
+    }
+
+    function pause() { running = false; if (rafId) global.cancelAnimationFrame(rafId); rafId = 0; }
+
+    function resume() {
+      if (!ctx || running || doc.visibilityState === 'hidden') return;
+      running = true; last = 0;
+      rafId = global.requestAnimationFrame(frame);
+    }
+
+    function start() {
+      if (ctx) { resume(); return true; }
+      const canvas = $('splash-3d-canvas');
+      if (!canvas || !global.THREE || reducedMotion()) return false;
+      try { ctx = build(canvas); }
+      catch (e) { console.warn('[Splash3D] WebGL no disponible; se mantiene el logo estático.', e); ctx = null; return false; }
+      resume();
+      return true;
+    }
+
+    function stop() {
+      pause();
+      if (!ctx) return;
+      try {
+        ctx.disposables.forEach((d) => { try { d.dispose(); } catch (_) {} });
+        ctx.renderer.dispose();
+        if (typeof ctx.renderer.forceContextLoss === 'function') ctx.renderer.forceContextLoss();
+      } catch (e) { console.warn('[Splash3D] dispose', e); }
+      ctx = null;
+    }
+
+    B().on('app:inactive', pause);
+    B().on('app:active', resume);
+    return { start, stop, isRunning: () => running, hasContext: () => !!ctx };
+  })();
+
+  app.initSplash3D = function () { return Splash3D.start(); };
+
+  function hideSplash() {
+    const splash = $('view-splash');
+    if (!splash) { Splash3D.stop(); return; }
+    splash.classList.add('opacity-0');
+    setTimeout(() => { splash.classList.add('hidden'); Splash3D.stop(); }, 400);
+  }
+
+  /** Pantalla de error de red con botón de reintento (sustituye al alert + reload en bucle). */
+  function showOfflineScreen(err) {
+    let box = $('view-offline');
+    if (!box) {
+      box = doc.createElement('div');
+      box.id = 'view-offline';
+      box.className = 'ab-offline';
+      box.innerHTML =
+        '<i class="fa-solid fa-satellite-dish ab-offline-icon"></i>' +
+        '<h2 class="ab-offline-title" data-i18n="boot_offline_title"></h2>' +
+        '<p class="ab-offline-desc" data-i18n="boot_offline_desc"></p>' +
+        '<p class="ab-offline-code"></p>' +
+        '<button type="button" class="ab-btn ab-btn-primary ab-offline-retry" data-i18n="btn_retry"></button>';
+      doc.body.appendChild(box);
+      box.querySelector('.ab-offline-retry').addEventListener('click', () => {
+        box.classList.add('hidden');
+        const splash = $('view-splash');
+        if (splash) splash.classList.remove('hidden', 'opacity-0');
+        app.checkSession();
+      });
+    }
+    if (typeof global.applyTranslations === 'function') global.applyTranslations(undefined, box);
+    box.querySelector('.ab-offline-code').textContent = (err && (err.code || err.status)) ? 'Código: ' + (err.code || err.status) : '';
+    box.classList.remove('hidden');
+  }
+
+  app.checkSession = async function () {
+    booting = true;
+    try { this.initTheme(); } catch (e) { console.error('[AlphaBoot] initTheme', e); }
+    try { this.initSplash3D(); } catch (e) { console.warn('[AlphaBoot] initSplash3D', e); }
+
+    // Idioma: preferencia guardada → idioma del usuario de Telegram (solo en TMA) → español.
+    try {
+      let lang = getLS('alpha_lang');
+      if (!lang) {
+        const tgLang = B().tgCall(null, (tg) => tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.language_code, null, 'language_code');
+        lang = tgLang ? String(tgLang).slice(0, 2) : 'es';
+      }
+      if (SUPPORTED_LANGS.indexOf(lang) < 0) lang = 'es';
+      this.currentLang = lang;
+      if (typeof global.setAppLanguage === 'function') global.setAppLanguage(lang);
+      else if (typeof global.applyTranslations === 'function') global.applyTranslations(lang);
+    } catch (e) { console.error('[AlphaBoot] idioma', e); }
 
     const splash = $('view-splash');
     doc.querySelectorAll('[id^="view-"]').forEach((el) => { if (el.id !== 'view-splash') el.classList.add('hidden'); });
@@ -132,21 +270,32 @@
       me = await B().init({
         apiBaseUrl: CFG.apiBaseUrl,
         wsBaseUrl: CFG.wsBaseUrl,
+        timeoutMs: CFG.timeoutMs,
         colors: CFG.colors,
         onStandalonePayment: (slug) => app.openStandalonePayment(slug),
         onAuthRequired: onAuthLost,
       });
-    } catch (e) { bootErr = e; }
-    await minSplash;
-    if (splash) { splash.classList.add('opacity-0'); setTimeout(() => splash.classList.add('hidden'), 400); }
-
-    if (bootErr) {
-      await UI().alert(T('toast_network_error', 'Error de red') + ' (' + (bootErr.status || 'offline') + ')');
-      global.location.reload();
-      return;
+    } catch (e) {
+      bootErr = e;
+      console.error('[AlphaBoot] AppBridge.init falló (' + (e.code || e.status) + '). Entorno: ' + B().platform(), e);
     }
+    await minSplash;
+    hideSplash();
+    booting = false;
+
+    // Sin sesión en Standalone el backend no es imprescindible para mostrar consentimiento/login.
+    if (bootErr && !B().isTelegram() && !(await hasStoredSession())) { routeAfterBoot(null); return; }
+    if (bootErr) { showOfflineScreen(bootErr); return; }
     routeAfterBoot(me);
   };
+
+  async function hasStoredSession() {
+    try {
+      const prefs = B().plugin('Preferences');
+      if (prefs) return !!(await prefs.get({ key: 'alpha_v2_refresh' })).value;
+      return !!getLS('alpha_v2_refresh');
+    } catch (_) { return false; }
+  }
 
   function routeAfterBoot(me) {
     const consent = getLS('alpha_consent') === 'true' || !!(me && me.age_confirmed);
@@ -155,26 +304,31 @@
     enterApp(me);
   }
 
-  async function enterApp(me) {
-    applyMe(me);
-    if (!me.age_confirmed && getLS('alpha_consent') === 'true') Api().updateMyProfile({ age_confirmed: true }).catch(() => {});
-    app.switchView('feed');
-    app.updateProfileUI();
-    app.updateViewsCounter();
-    Chat().initCRM();                 // DMs en segundo plano → notificaciones
-    app.initTonConnect().catch(() => {});
-    app.refreshUserData();
-    app.renderFeed();
+  function enterApp(me) {
+    try {
+      applyMe(me);
+      if (!me.age_confirmed && getLS('alpha_consent') === 'true') Api().updateMyProfile({ age_confirmed: true }).catch(() => {});
+      app.switchView('feed');
+      app.updateProfileUI();
+      app.updateViewsCounter();
+    } catch (e) { console.error('[AlphaBoot] enterApp (UI)', e); }
+    // Cada servicio arranca de forma independiente: un fallo no bloquea a los demás.
+    try { Chat().initCRM(); } catch (e) { console.error('[AlphaBoot] initCRM', e); }
+    Promise.resolve().then(() => app.initTonConnect()).catch((e) => console.warn('[AlphaBoot] TonConnect', e));
+    Promise.resolve().then(() => app.refreshUserData()).catch((e) => console.warn('[AlphaBoot] saldo', e));
+    Promise.resolve().then(() => app.renderFeed()).catch((e) => console.warn('[AlphaBoot] feed', e));
   }
 
   let authLostShown = false;
   function onAuthLost() {
-    if (authLostShown) return;
+    if (booting || authLostShown) return;
     authLostShown = true;
-    if (RV() && RV().isActive()) RV().leave({ silent: true });
-    Chat().closeConnections();
+    try {
+      if (RV() && RV().isActive()) RV().leave({ silent: true });
+      Chat().closeConnections();
+    } catch (e) { console.error('[AlphaAuth] limpieza tras perder sesión', e); }
     if (B().isTelegram()) {
-      UI().alert(T('toast_session_expired', 'Sesión expirada') + ' — reabre la Mini App.').then(() => B().exitApp());
+      UI().alert(T('toast_session_expired', 'Sesión expirada')).then(() => B().exitApp());
     } else {
       toast(T('toast_session_expired', 'Sesión expirada'));
       ME = null;
@@ -184,104 +338,330 @@
   }
 
   app.acceptConsent = function () {
-    this.haptic('medium');
-    setLS('alpha_consent', 'true');
-    const me = ME;
-    if (me) return enterApp(me);
-    if (B().isTelegram()) return B().getUser(true).then(enterApp).catch((e) => toast(errMsg(e)));
-    // El captcha cliente es solo UX; la protección anti-bots real debe ir en /v2/auth/* (Turnstile).
-    this.switchView('login');
+    try {
+      this.haptic('medium');
+      setLS('alpha_consent', 'true');
+      if (ME) return enterApp(ME);
+      if (B().isTelegram()) {
+        return B().getUser(true).then(enterApp).catch((e) => { console.error('[AlphaAuth] getUser tras consentimiento', e); toast(errMsg(e)); });
+      }
+      // El captcha cliente es solo UX; la protección anti-bots real debe ir en /v2/auth/* (Turnstile).
+      this.switchView('login');
+    } catch (e) {
+      console.error('[AlphaAuth] acceptConsent', e);
+      this.switchView('login');
+    }
   };
 
   app.verifyCaptcha = function () {
-    const input = $('captcha-input');
-    const v = input ? input.value.trim().toUpperCase() : '';
-    if (!v || v !== this.currentCaptcha) { if (input) input.value = ''; this.generateCaptcha(); B().haptic('error'); return; }
-    if (ME) return enterApp(ME);
-    this.switchView('login');
+    try {
+      const input = $('captcha-input');
+      const v = input ? input.value.trim().toUpperCase() : '';
+      if (!v || v !== this.currentCaptcha) { if (input) input.value = ''; this.generateCaptcha(); B().haptic('error'); return; }
+      if (ME) return enterApp(ME);
+      this.switchView('login');
+    } catch (e) { console.error('[AlphaAuth] verifyCaptcha', e); }
   };
 
-  // Lee el formulario de view-login si existe; si no, abre un formulario modal.
-  app.loginWithEmail = async function () {
-    const e = $('login-email'), p = $('login-password');
-    let v = null;
-    if (e && p) {
-      v = { email: e.value.trim(), password: p.value };
-      if (!v.email || !v.password) { B().haptic('error'); toast(T('toast_pwd_empty', 'Completa email y contraseña')); return; }
-    } else {
-      v = await UI().form({
-        title: T('login_title', 'INICIAR SESIÓN'),
-        fields: [
-          { name: 'email', label: T('field_email', 'Email'), type: 'email', required: true, autocomplete: 'username' },
-          { name: 'password', label: T('field_password', 'Contraseña'), type: 'password', required: true, autocomplete: 'current-password' },
-        ],
-        submitText: T('login_title', 'Entrar'),
-      });
-      if (!v) return;
+  // ---------------------------------------------------------------- utilidades de autenticación
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+  /**
+   * Bloquea el botón mientras dura la operación y muestra un spinner (clase .ab-busy),
+   * para que el usuario vea actividad y no pulse dos veces. Siempre se libera en finally.
+   */
+  async function withBusy(btn, fn) {
+    if (btn && btn.getAttribute('data-busy') === '1') return undefined;
+    if (btn) { btn.setAttribute('data-busy', '1'); btn.disabled = true; btn.classList.add('ab-busy'); btn.setAttribute('aria-busy', 'true'); }
+    try { return await fn(); }
+    finally {
+      // data-locked="1" = desactivado de forma permanente (p. ej. login Telegram no disponible).
+      if (btn) { btn.removeAttribute('data-busy'); btn.disabled = btn.getAttribute('data-locked') === '1'; btn.classList.remove('ab-busy'); btn.removeAttribute('aria-busy'); }
     }
+  }
+
+  function authErrMsg(e, kind) {
+    if (!e) return T('toast_network_error');
+    if (e.code === 'TIMEOUT') return T('toast_server_slow');
+    if (e.code === 'NETWORK' || e.status === 0) return T('toast_server_unreachable');
+    if (kind === 'login' && (e.status === 401 || e.status === 403)) return T('toast_invalid_credentials');
+    if (kind === 'register' && e.status === 409) return T('toast_account_exists');
+    if (e.status === 429) return '⚠️ ' + (e.message || 'Demasiados intentos. Espera un momento.');
+    return e.message ? '⚠️ ' + e.message : T('toast_network_error');
+  }
+
+  function reportAuthError(where, e, kind) {
+    console.error('[AlphaAuth] ' + where + ' falló — entorno=' + B().platform() + ' status=' + (e && e.status) + ' code=' + (e && e.code), e);
+    try { B().haptic('error'); } catch (_) {}
+    toast(authErrMsg(e, kind));
+  }
+
+  // ---------------------------------------------------------------- login email / contraseña (sin Telegram)
+  // Lee el formulario de #view-login si existe; si no, abre un formulario modal.
+  app.loginWithEmail = async function () {
+    const btn = $('btn-phone-text');
     try {
-      const me = await B().login(v.email, v.password);
-      if (p) p.value = '';
-      enterApp(me);
-    } catch (err) { B().haptic('error'); toast(errMsg(err)); }
+      const e = $('login-email'), p = $('login-password');
+      let v = null;
+      if (e && p) {
+        v = { email: e.value.trim(), password: p.value };
+        if (!v.email || !v.password) { B().haptic('error'); toast(T('toast_fill_login')); (v.email ? p : e).focus(); return; }
+      } else {
+        v = await UI().form({
+          title: T('login_title', 'INICIAR SESIÓN'),
+          fields: [
+            { name: 'email', label: T('field_email', 'Email'), type: 'email', required: true, autocomplete: 'username' },
+            { name: 'password', label: T('field_password', 'Contraseña'), type: 'password', required: true, autocomplete: 'current-password' },
+          ],
+          submitText: T('login_title', 'Entrar'),
+        });
+        if (!v) return;
+      }
+      if (!EMAIL_RE.test(v.email)) { B().haptic('error'); toast(T('toast_invalid_email')); if (e) e.focus(); return; }
+
+      await withBusy(btn, async () => {
+        try {
+          const me = await B().login(v.email, v.password);
+          if (p) p.value = '';
+          enterApp(me);
+        } catch (err) { reportAuthError('loginWithEmail', err, 'login'); }
+      });
+    } catch (err) { reportAuthError('loginWithEmail (UI)', err, 'login'); }
   };
   // El login por teléfono de v1 no verificaba nada (solo cambiaba de vista). Hasta tener OTP
   // en el backend, se redirige a email/contraseña.
   app.loginWithPhone = app.loginWithEmail;
 
-  app.loginWithTelegram = async function () {
-    this.haptic('medium');
-    if (B().isTelegram()) { try { return enterApp(await B().getUser(true)); } catch (e) { return toast(errMsg(e)); } }
-    toast('Confirma el acceso en Telegram…');
-    try { enterApp(await B().loginViaTelegramBot()); } catch (e) { toast(errMsg(e)); }
+  // ---------------------------------------------------------------- registro email / contraseña (sin Telegram)
+  app.registerWithData = async function () {
+    const btn = $('btn-reg-text');
+    try {
+      const n = $('reg-name-input'), e = $('reg-email-input'), p = $('reg-password-input');
+      let v = null;
+      if (e && p) {
+        v = { name: n ? n.value.trim() : '', email: e.value.trim(), password: p.value };
+        if (!v.email || !v.password || (n && !v.name)) { B().haptic('error'); toast(T('toast_fill_register')); return; }
+      } else {
+        v = await UI().form({
+          title: T('register_title', 'CREAR CUENTA'),
+          fields: [
+            { name: 'name', label: T('field_name', 'Alias'), required: true },
+            { name: 'email', label: T('field_email', 'Email'), type: 'email', required: true, autocomplete: 'username' },
+            { name: 'password', label: T('field_password', 'Contraseña'), type: 'password', required: true, autocomplete: 'new-password' },
+          ],
+          submitText: T('register_title', 'Crear'),
+        });
+        if (!v) return;
+      }
+      if (!EMAIL_RE.test(v.email)) { B().haptic('error'); toast(T('toast_invalid_email')); if (e) e.focus(); return; }
+      if (v.password.length < 8) { B().haptic('error'); toast(T('toast_pwd_min8')); if (p) p.focus(); return; }
+      if (v.name.length > 32) v.name = v.name.slice(0, 32);
+
+      // startParam() en Standalone solo lee location.search: nunca espera a Telegram.
+      let referral = null;
+      try { referral = B().startParam() || getLS('alpha_referred_by') || null; } catch (_) { referral = null; }
+
+      await withBusy(btn, async () => {
+        try {
+          const me = await B().register(v.email, v.password, v.name || v.email.split('@')[0], {
+            requested_role: this.registerRoleSelected === 'creator' ? 'creator' : 'fan',  // el servidor decide
+            referral_code: referral,
+          });
+          if (p) p.value = '';
+          enterApp(me);
+        } catch (err) { reportAuthError('registerWithData', err, 'register'); }
+      });
+    } catch (err) { reportAuthError('registerWithData (UI)', err, 'register'); }
   };
 
-  app.registerWithData = async function () {
-    const n = $('reg-name-input'), e = $('reg-email-input'), p = $('reg-password-input');
-    let v = null;
-    if (e && p) {
-      v = { name: n ? n.value.trim() : '', email: e.value.trim(), password: p.value };
-      if (!v.email || !v.password || (n && !v.name)) { B().haptic('error'); toast(T('toast_pwd_empty', 'Completa todos los campos')); return; }
-    } else {
-      v = await UI().form({
-        title: T('register_title', 'CREAR CUENTA'),
-        fields: [
-          { name: 'name', label: T('field_name', 'Alias'), required: true },
-          { name: 'email', label: T('field_email', 'Email'), type: 'email', required: true, autocomplete: 'username' },
-          { name: 'password', label: T('field_password', 'Contraseña'), type: 'password', required: true, autocomplete: 'new-password' },
-        ],
-        submitText: T('register_title', 'Crear'),
-      });
-      if (!v) return;
+  // ---------------------------------------------------------------- login con Telegram
+  /** Diálogo "esperando a Telegram" con botón Cancelar; el BackButton/atrás de Android también cancela. */
+  function waitingDialog(message, onCancel) {
+    const h = UI().h;
+    let closed = false;
+    const box = h('div', { class: 'ab-overlay', id: 'modal-ab-wait', role: 'dialog', 'aria-modal': 'true' }, [
+      h('div', { class: 'ab-dialog' }, [
+        h('div', { class: 'ab-spinner', 'aria-hidden': 'true' }),
+        h('p', { class: 'ab-dialog-msg', text: message }),
+        h('div', { class: 'ab-dialog-actions' }, [h('button', { class: 'ab-btn', type: 'button', text: T('btn_cancel', 'Cancelar'), onclick: () => close(true) })]),
+      ]),
+    ]);
+    function close(cancelled) {
+      if (closed) return;
+      closed = true;
+      box.remove();
+      if (cancelled && onCancel) { try { onCancel(); } catch (e) { console.error('[AlphaAuth] cancelar espera', e); } }
     }
-    if (v.password.length < 8) { toast('La contraseña debe tener al menos 8 caracteres'); return; }
+    box._abClose = () => close(true);
+    doc.body.appendChild(box);
+    return { close: () => close(false) };
+  }
+
+  function disableTelegramLoginButton() {
+    const b = $('btn-login-telegram');
+    if (b) { b.setAttribute('data-locked', '1'); b.disabled = true; b.classList.add('opacity-40'); b.classList.remove('levitate'); }
+  }
+
+  app.loginWithTelegram = async function () {
+    const btn = $('btn-login-telegram');
     try {
-      const me = await B().register(v.email, v.password, v.name || v.email.split('@')[0], {
-        requested_role: this.registerRoleSelected === 'creator' ? 'creator' : 'fan',  // el servidor decide
-        referral_code: B().startParam() || getLS('alpha_referred_by') || null,
+      this.haptic('medium');
+      // Dentro de Telegram la identidad ya viene firmada en initData.
+      if (B().isTelegram()) {
+        await withBusy(btn, async () => {
+          try { enterApp(await B().getUser(true)); }
+          catch (err) { reportAuthError('loginWithTelegram (TMA)', err, 'login'); }
+        });
+        return;
+      }
+      // APK / web: flujo externo vía bot + deep link alphabunker://login, o degradación elegante.
+      if (!CFG.features.telegramLoginStandalone) {
+        disableTelegramLoginButton();
+        toast(T('tg_login_unavailable'));
+        const e = $('login-email'); if (e) e.focus();
+        return;
+      }
+      const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+      await withBusy(btn, async () => {
+        const dlg = waitingDialog(T('tg_login_waiting'), () => { if (ctrl) ctrl.abort(); });
+        try {
+          const me = await B().loginViaTelegramBot({ signal: ctrl ? ctrl.signal : undefined, timeoutMs: 120000 });
+          dlg.close();
+          enterApp(me);
+        } catch (err) {
+          dlg.close();
+          if (err && err.code === 'ABORTED') return;
+          if (err && err.code === 'TG_LOGIN_UNAVAILABLE') {
+            console.error('[AlphaAuth] loginViaTelegramBot: el backend no ofrece /v2/auth/telegram/login-intent (' + err.status + ')');
+            disableTelegramLoginButton();
+            toast(T('tg_login_unavailable'));
+            return;
+          }
+          if (err && err.code === 'TG_LOGIN_TIMEOUT') { console.error('[AlphaAuth] loginViaTelegramBot: sin confirmación', err); toast(T('tg_login_timeout')); return; }
+          reportAuthError('loginWithTelegram (APK)', err, 'login');
+        }
       });
-      if (p) p.value = '';
-      enterApp(me);
-    } catch (err) { B().haptic('error'); toast(errMsg(err)); }
+    } catch (err) { reportAuthError('loginWithTelegram (UI)', err, 'login'); }
   };
 
   app.logout = async function () {
-    this.haptic('heavy');
-    if (!(await UI().confirm('¿Cerrar sesión?'))) return;
-    if (RV() && RV().isActive()) RV().leave({ silent: true });
-    Chat().closeConnections();
-    global.MediaManager.releaseAll(true);
-    try { if (this.tonConnectUI && this.tonConnectUI.connected) await this.tonConnectUI.disconnect(); } catch (_) {}
-    await B().logout();
-    clearAppStorage();
+    try {
+      this.haptic('heavy');
+      if (!(await UI().confirm('¿Cerrar sesión?'))) return;
+      try { if (RV() && RV().isActive()) RV().leave({ silent: true }); } catch (e) { console.error('[AlphaAuth] logout video', e); }
+      try { Chat().closeConnections(); } catch (e) { console.error('[AlphaAuth] logout chat', e); }
+      try { global.MediaManager.releaseAll(true); } catch (e) { console.error('[AlphaAuth] logout media', e); }
+      try { if (this.tonConnectUI && this.tonConnectUI.connected) await this.tonConnectUI.disconnect(); } catch (_) {}
+      await B().logout();
+    } catch (e) {
+      console.error('[AlphaAuth] logout', e);
+    } finally {
+      clearAppStorage();
+    }
     if (B().isTelegram()) return B().exitApp();
     global.location.reload();
   };
 
   app.exitApp = function () { B().exitApp(); };
 
+  // ---------------------------------------------------------------- privacidad sin falsos positivos
+  // app.js añade .privacy-blur en window 'blur'. Ese evento también salta al abrir openInvoice,
+  // TonConnect, el selector de archivos o el permiso de cámara, y dejaba la pantalla negra en
+  // pleno pago. Se mantiene el oscurecimiento real (app en segundo plano: visibilitychange) y se
+  // anula solo el de 'blur' con la página visible. Se registra tras el DOMContentLoaded de app.js
+  // para que este listener corra DESPUÉS del suyo.
+  doc.addEventListener('DOMContentLoaded', () => {
+    global.addEventListener('blur', () => {
+      setTimeout(() => { if (doc.visibilityState === 'visible') doc.body.classList.remove('privacy-blur'); }, 0);
+    });
+  });
+
+  // ---------------------------------------------------------------- selector de idiomas
+  const LANG_LABELS = { es: '🇪🇸 Español', en: '🇬🇧 English', it: '🇮🇹 Italiano', pt: '🇧🇷 Português', de: '🇩🇪 Deutsch', fr: '🇫🇷 Français' };
+
+  /** Vincular al botón de idioma: abre un selector con los 6 idiomas. */
+  app.openLanguagePicker = function () {
+    try {
+      this.haptic('light');
+      const h = UI().h;
+      const old = $('modal-language'); if (old) old.remove();
+      const current = (typeof global.getAppLanguage === 'function' && global.getAppLanguage()) || this.currentLang || 'es';
+      let box;
+      const close = () => { if (box) box.remove(); };
+      const buttons = SUPPORTED_LANGS.map((l) => h('button', {
+        type: 'button',
+        class: 'ab-lang-btn' + (l === current ? ' is-active' : ''),
+        'data-lang': l,
+        text: LANG_LABELS[l],
+        onclick: () => { app.setLanguage(l); close(); },
+      }));
+      box = h('div', { class: 'ab-overlay', id: 'modal-language', role: 'dialog', 'aria-modal': 'true' }, [
+        h('div', { class: 'ab-dialog' }, [
+          h('h3', { class: 'ab-dialog-title', 'data-i18n': 'lang_title', text: T('lang_title', 'IDIOMA') }),
+          h('div', { class: 'ab-lang-grid' }, buttons),
+          h('div', { class: 'ab-dialog-actions' }, [h('button', { class: 'ab-btn', type: 'button', 'data-i18n': 'btn_cancel', text: T('btn_cancel', 'Cancelar'), onclick: close })]),
+        ]),
+      ]);
+      box._abClose = close;
+      doc.body.appendChild(box);
+    } catch (e) {
+      console.error('[i18n] openLanguagePicker', e);
+      this.toggleLanguage();
+    }
+  };
+
+  /** Cambio de idioma en caliente (sin recargar). */
+  app.setLanguage = function (lang) {
+    try {
+      this.haptic('light');
+      const l = typeof global.setAppLanguage === 'function' ? global.setAppLanguage(lang) : lang;
+      this.currentLang = l;
+    } catch (e) { console.error('[i18n] setLanguage', e); }
+  };
+
+  /** Rotación ES→EN→IT→PT→DE→FR (compatibilidad con llamadas antiguas). */
+  app.toggleLanguage = function () {
+    const cur = (typeof global.getAppLanguage === 'function' && global.getAppLanguage()) || this.currentLang || 'es';
+    this.setLanguage(SUPPORTED_LANGS[(SUPPORTED_LANGS.indexOf(cur) + 1) % SUPPORTED_LANGS.length]);
+  };
+
+  // Repinta lo que app.js genera dinámicamente con getTrans() al cambiar de idioma.
+  doc.addEventListener('alpha:language', (ev) => {
+    const l = ev && ev.detail && ev.detail.lang;
+    if (l) app.currentLang = l;
+    try { if (ME) app.updateProfileUI(); } catch (e) { console.error('[i18n] updateProfileUI', e); }
+    try {
+      const cat = $('modal-catalog');
+      if (cat && !cat.classList.contains('hidden')) app.openCatalogPackages();
+    } catch (e) { console.error('[i18n] catálogo', e); }
+    try {
+      const feed = $('feed-container');
+      const cached = global.sessionStorage && global.sessionStorage.getItem('alpha_feed');
+      if (ME && feed && cached) app.buildFeedHTML(JSON.parse(cached), feed);
+    } catch (e) { console.error('[i18n] feed', e); }
+  });
+
   // ==================================================================== 4. utilidades nativas
   app.haptic = function (style) { B().haptic(style); };
+  /** Toast accesible: duración según longitud (2,5–6 s) y sin innerHTML con el mensaje. */
+  app.showToast = function (msg) {
+    try {
+      const text = String(msg == null ? '' : msg);
+      const prev = $('alpha-dynamic-toast'); if (prev) prev.remove();
+      const el = doc.createElement('div');
+      el.id = 'alpha-dynamic-toast';
+      el.setAttribute('role', 'status');
+      el.setAttribute('aria-live', 'polite');
+      el.className = 'ab-toast';
+      const icon = doc.createElement('i'); icon.className = 'fa-solid fa-triangle-exclamation';
+      const span = doc.createElement('span'); span.textContent = text;
+      el.appendChild(icon); el.appendChild(span);
+      doc.body.appendChild(el);
+      requestAnimationFrame(() => el.classList.add('is-visible'));
+      const ms = Math.max(2500, Math.min(6000, 1200 + text.length * 45));
+      setTimeout(() => { el.classList.remove('is-visible'); setTimeout(() => el.remove(), 300); }, ms);
+    } catch (e) { console.error('[AlphaSecure] showToast', e, msg); }
+  };
   app.openLink = function (url) { B().openLink(url); };
   app.copyText = function (text) { UI().copy(text).then((ok) => { if (ok) toast(T('toast_copied', 'Copiado')); }); };
 
@@ -492,10 +872,13 @@
         '<div id="catalog-packages-list" class="overflow-y-auto pr-2 pb-6 space-y-4"></div></div></div>');
       modal = $('modal-catalog');
     }
-    $('catalog-title').textContent = T('cat_title', 'RANGOS BÚNKER');
-    $('catalog-desc').textContent = T('cat_desc', 'Adquiere tu rango oficial.');
+    // index.html trae su propio #modal-catalog (con #cat-title y sin #catalog-desc): solo se
+    // tocan los elementos que existan, para no romper con ninguno de los dos marcados.
+    const titleEl = $('catalog-title'); if (titleEl) titleEl.textContent = T('cat_title', 'RANGOS BÚNKER');
+    const descEl = $('catalog-desc'); if (descEl) descEl.textContent = T('cat_desc', 'Adquiere tu rango oficial.');
     modal.classList.remove('hidden');
     const box = $('catalog-packages-list');
+    if (!box) { console.error('[AlphaPay] falta #catalog-packages-list en el modal del catálogo'); return; }
     box.innerHTML = '<div class="text-center text-neutral-400 mt-10 font-bold">' + esc(T('cat_loading')) + '</div>';
     try {
       const pkgs = await Api().packages();

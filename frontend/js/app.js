@@ -1,7 +1,11 @@
+/**
+ * js/app.js — Lógica de UI (app_5). NO editar la seguridad aquí: js/app_secure.js
+ * sustituye en runtime los métodos de red, identidad, pagos, chat y video.
+ */
 const app = {
     userId: null,
     tonConnectUI: null,
-    backendUrl: "https://alpha-bunker-backend-production.up.railway.app",
+    backendUrl: "https://alpha-bunker-backend.onrender.com",
     currentCaptcha: '',
     isAdmin: false,
     userAccessLevel: 0,
@@ -907,7 +911,7 @@ const app = {
         if (!this.tonConnectUI && TonConnectClass) {
             try {
                 this.tonConnectUI = new TonConnectClass({ 
-                    manifestUrl: "https://alpha-bunker-backend-production.up.railway.app/tonconnect-manifest.json",
+                    manifestUrl: "https://alpha-bunker-backend.onrender.com/tonconnect-manifest.json",
                     uiPreferences: { theme: 'DARK' }
                 });
                 if (typeof this.tonConnectUI.connectionRestored === 'object') await this.tonConnectUI.connectionRestored;
